@@ -96,44 +96,23 @@ window.addEventListener('DOMContentLoaded', () => {
   
   
   
-  async function initWorker() {
-    if (state.ocrWorker) return;
-    if (typeof Tesseract === 'undefined' || typeof Tesseract.createWorker !== 'function') {
-      throw new Error('Tesseract.js not loaded (network issue?)');
+  
+async function initWorker() {
+  if (state.ocrWorker) return;
+
+  const logger = m => {
+    if (m && m.status === 'recognizing text') {
+      try { progress.value = m.progress || 0; } catch (e) {}
     }
+    appendOCRLog(JSON.stringify(m));
+  };
 
-    const logger = m => {
-      if (m && m.status === 'recognizing text') {
-        try { progress.value = m.progress || 0; } catch (e) {}
-      }
-      appendOCRLog(JSON.stringify(m));
-    };
+  // v5 API: createWorker(lang, oem, options)
+  state.ocrWorker = await Tesseract.createWorker('eng', 1, { logger });
 
-    // createWorker may return a worker or a promise resolving to a worker depending on build/version
-    let maybe = Tesseract.createWorker ? Tesseract.createWorker({ logger }) : null;
-    // await in case it's a promise
-    maybe = await maybe;
+  setStatus('OCR worker ready.');
+}
 
-    state.ocrWorker = maybe;
-
-    // Some builds require explicit load / loadLanguage / initialize (older v4 style).
-    try {
-      if (state.ocrWorker && typeof state.ocrWorker.load === 'function') {
-        await state.ocrWorker.load();
-      }
-      if (state.ocrWorker && typeof state.ocrWorker.loadLanguage === 'function') {
-        await state.ocrWorker.loadLanguage('eng');
-      }
-      if (state.ocrWorker && typeof state.ocrWorker.initialize === 'function') {
-        await state.ocrWorker.initialize('eng');
-      }
-    } catch (e) {
-      // Non-fatal; log and continue. Worker may already be initialized.
-      appendOCRLog('Worker init skipped or failed: ' + (e && e.message ? e.message : String(e)));
-    }
-
-    setStatus('OCR worker ready.');
-  }
 
 
   }
