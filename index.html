@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OCR Table Extractor — Names from Image</title>
+  <meta name="description" content="Upload an image of a table of names; client-side OCR extracts and displays names in an editable, sortable table." />
+  <link rel="icon" href="assets/icon.svg" />
+  <!-- Tailwind via CDN (SRI included). For GitHub Pages, this is acceptable; for production consider building locally. -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" integrity="sha384-PLACEHOLDER_INTEGRITY" crossorigin="anonymous">
+  <meta name="theme-color" content="#111827" />
+  <style>
+    /* Small helpful styles; keep most styling with Tailwind */
+    .ocr-overlay { pointer-events: none; position: absolute; inset: 0; }
+    .bounding-box { position: absolute; border: 1px dashed rgba(59,130,246,0.6); }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+  <a class="sr-only" href="#main">Skip to main</a>
+  <header class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="assets/icon.svg" alt="logo" class="w-10 h-10" />
+        <div>
+          <h1 class="text-lg font-semibold">OCR Table Extractor</h1>
+          <p class="text-sm text-gray-500">Extract names from an image of a table — client-side, private, fast.</p>
+        </div>
+      </div>
+      <nav class="text-sm text-gray-600">
+        <a href="#how" class="mr-4 underline">How it works</a>
+        <a href="#help" class="mr-4">Help ( ? )</a>
+        <button id="resetBtn" class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200">Reset</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="max-w-6xl mx-auto px-4 py-8">
+    <section aria-labelledby="uploader" class="grid md:grid-cols-3 gap-6">
+      <div class="md:col-span-1 bg-white p-4 rounded shadow">
+        <h2 id="uploader" class="text-sm font-medium">Upload / Paste / Drag & Drop</h2>
+        <p class="text-xs text-gray-500 mt-1">Images stay in your browser unless you opt-in to remote processing.</p>
+
+        <div id="dropzone" class="mt-4 border-2 border-dashed border-gray-200 rounded p-4 text-center cursor-pointer" tabindex="0" role="button" aria-label="Upload image">
+          <p id="dzText">Drop image here, click to browse, or paste (Ctrl/Cmd+V)</p>
+          <input id="fileInput" type="file" accept="image/*" class="hidden" />
+        </div>
+
+        <div class="mt-4 space-y-2">
+          <label class="flex items-center gap-2 text-sm">
+            <input id="overlayToggle" type="checkbox" class="form-checkbox" />
+            <span>Show OCR overlay</span>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input id="fuzzyToggle" type="checkbox" class="form-checkbox" />
+            <span>Enable fuzzy de-duplication</span>
+          </label>
+          <div class="mt-2">
+            <button id="processBtn" class="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Process Image</button>
+          </div>
+        </div>
+
+        <div class="mt-4 text-xs text-gray-500">
+          <strong>Privacy:</strong> Images are processed in your browser by default. No uploads.
+        </div>
+
+        <div id="status" class="mt-3 text-sm text-gray-600" aria-live="polite"></div>
+      </div>
+
+      <div class="md:col-span-2 bg-white p-4 rounded shadow relative">
+        <div class="flex justify-between items-start">
+          <h2 class="text-sm font-medium">Preview & OCR Overlay</h2>
+          <div class="flex items-center gap-2">
+            <button id="copyBtn" class="px-2 py-1 border rounded">Copy CSV</button>
+            <button id="exportBtn" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Export CSV</button>
+            <button id="helpBtn" class="px-2 py-1 border rounded">?</button>
+          </div>
+        </div>
+        <div id="previewWrap" class="mt-3 border rounded bg-gray-100 p-2 flex flex-col md:flex-row gap-4">
+          <div class="flex-1 relative">
+            <canvas id="previewCanvas" class="w-full rounded" aria-label="Image preview"></canvas>
+            <div id="ocrOverlay" class="ocr-overlay hidden" aria-hidden="true"></div>
+          </div>
+          <div class="w-full md:w-80">
+            <label class="text-xs text-gray-600">OCR progress</label>
+            <progress id="progress" value="0" max="1" class="w-full"></progress>
+            <div id="ocrOutput" class="mt-3 text-xs text-gray-700 h-44 overflow-auto bg-white rounded p-2 border"></div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <h3 class="text-sm font-medium">Extracted Names</h3>
+          <div class="flex gap-2 mt-2">
+            <input id="searchInput" type="search" placeholder="Search names..." class="flex-1 p-2 border rounded" />
+            <select id="sortSelect" class="p-2 border rounded">
+              <option value="asc">Sort: A → Z</option>
+              <option value="desc">Sort: Z → A</option>
+            </select>
+          </div>
+
+          <div id="tableWrap" class="mt-3 overflow-auto max-h-80 border rounded bg-white">
+            <table id="namesTable" class="min-w-full text-left">
+              <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                  <th class="p-2 text-xs">#</th>
+                  <th class="p-2 text-xs">Name</th>
+                  <th class="p-2 text-xs">Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section id="how" class="mt-8 bg-white p-4 rounded shadow">
+      <h2 class="text-sm font-medium">How it works</h2>
+      <ol class="mt-2 text-sm text-gray-700 list-decimal list-inside space-y-1">
+        <li>Load image → optional preprocessing (deskew/contrast).</li>
+        <li>OCR runs in a WebWorker using Tesseract.js; progress shown.</li>
+        <li>Bounding boxes are parsed into rows; heuristics extract name tokens and clean them.</li>
+        <li>Results are displayed; you can edit, export CSV, or copy results.</li>
+      </ol>
+    </section>
+
+    <section id="help" class="mt-6 bg-white p-4 rounded shadow">
+      <h2 class="text-sm font-medium">Help & Shortcuts</h2>
+      <p class="text-xs text-gray-600">Shortcuts: <kbd>Enter</kbd> commit edit; <kbd>Esc</kbd> cancel; <kbd>?<\/kbd> open help.</p>
+    </section>
+
+  </main>
+
+  <footer class="mt-8 text-center text-xs text-gray-500 pb-8">MIT License • Designed for privacy — images stay local</footer>
+
+  <!-- Scripts -->
+  <script>
+    // Small bootstrap to load modules from assets
+    (function(){
+      const SCRIPTS = ['assets/ui.js'];
+      SCRIPTS.forEach(src => {
+        const s = document.createElement('script'); s.src = src; s.defer = true; document.body.appendChild(s);
+      });
+    })();
+  </script>
+</body>
+</html>
