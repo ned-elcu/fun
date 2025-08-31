@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OCR Table Extractor — Names from Image</title>
+  <meta name="description" content="Upload an image of a table of names; client-side OCR extracts and displays names in an editable, sortable table." />
+  <link rel="icon" href="assets/icon.svg" />
+  <!-- Production: static stylesheet (prebuilt). This avoids using cdn.tailwindcss.com -->
+  <link rel="stylesheet" href="assets/styles.css">
+  <!-- Tesseract.js (browser build) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js" defer></script>
+  <meta name="theme-color" content="#111827" />
+</head>
+<body>
+  <a class="sr-only" href="#main">Skip to main</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="assets/icon.svg" alt="logo" class="logo" />
+        <div>
+          <h1 class="title">OCR Table Extractor</h1>
+          <p class="tagline">Extract names from an image of a table — client-side, private, fast.</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#how" class="nav-link">How it works</a>
+        <a href="#help" class="nav-link">Help</a>
+        <button id="resetBtn" class="btn btn-ghost">Reset</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="container main-grid">
+    <section class="panel side-panel" aria-labelledby="uploader">
+      <h2 id="uploader" class="panel-title">Upload / Paste / Drag & Drop</h2>
+      <p class="muted">Images stay in your browser unless you opt-in to remote processing.</p>
+
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload image">
+        <p id="dzText">Drop image here, click to browse, or paste (Ctrl/Cmd+V)</p>
+        <input id="fileInput" type="file" accept="image/*" class="hidden" />
+      </div>
+
+      <div class="controls">
+        <label class="control-row"><input id="overlayToggle" type="checkbox" /> Show OCR overlay</label>
+        <label class="control-row"><input id="fuzzyToggle" type="checkbox" /> Enable fuzzy de-duplication</label>
+        <button id="processBtn" class="btn btn-primary full">Process Image</button>
+      </div>
+
+      <div class="privacy muted"><strong>Privacy:</strong> Images are processed in your browser by default. No uploads.</div>
+      <div id="status" class="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel main-panel" aria-live="polite">
+      <div class="panel-header">
+        <h2 class="panel-title">Preview & OCR Overlay</h2>
+        <div class="panel-actions">
+          <button id="copyBtn" class="btn">Copy CSV</button>
+          <button id="exportBtn" class="btn btn-success">Export CSV</button>
+          <button id="helpBtn" class="btn">?</button>
+        </div>
+      </div>
+
+      <div id="previewWrap" class="preview-wrap">
+        <div class="preview-canvas-wrap">
+          <canvas id="previewCanvas" class="preview-canvas" aria-label="Image preview"></canvas>
+          <div id="ocrOverlay" class="ocr-overlay hidden" aria-hidden="true"></div>
+        </div>
+        <div class="progress-column">
+          <label class="muted">OCR progress</label>
+          <progress id="progress" value="0" max="1" class="progress-bar"></progress>
+          <div id="ocrOutput" class="ocr-output" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="extracted">
+        <h3 class="panel-title">Extracted Names</h3>
+        <div class="search-row">
+          <input id="searchInput" type="search" placeholder="Search names..." class="input" />
+          <select id="sortSelect" class="input">
+            <option value="asc">Sort: A → Z</option>
+            <option value="desc">Sort: Z → A</option>
+          </select>
+        </div>
+
+        <div id="tableWrap" class="table-wrap">
+          <table id="namesTable" class="names-table" aria-live="polite">
+            <thead>
+              <tr><th>#</th><th>Name</th><th>Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="panel info-panel">
+      <h2 class="panel-title">How it works</h2>
+      <ol>
+        <li>Load image → optional preprocessing (deskew/contrast).</li>
+        <li>OCR runs in a Tesseract worker (via Tesseract.js); progress shown.</li>
+        <li>Bounding boxes are parsed into rows; heuristics extract name tokens and clean them.</li>
+        <li>Results are displayed; you can edit, export CSV, or copy results.</li>
+      </ol>
+    </section>
+
+    <section id="help" class="panel info-panel">
+      <h2 class="panel-title">Help & Shortcuts</h2>
+      <p class="muted">Shortcuts: Enter commit edit; Esc cancel; ? open help.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">MIT License • Designed for privacy — images stay local</div>
+  </footer>
+
+  <!-- Main module (ES) -->
+  <script type="module" src="assets/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+
+/* Minimal production stylesheet — handcrafted for this app.
+   This is NOT full Tailwind, but provides a compact, production-safe CSS
+   so the app works without external CDNs for styles.
+   If you want real Tailwind, follow README to build styles.css with Tailwind CLI.
+*/
+
+:root{
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --accent:#4f46e5;
+  --success:#059669;
+  --border:#e5e7eb;
+  --text:#111827;
+  --radius:8px;
+  --container:1100px;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.4}
+.container{max-width:var(--container);margin:0 auto;padding:20px}
+
+/* Header */
+.site-header{background:var(--card);border-bottom:1px solid var(--border)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 20px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:44px;height:44px}
+.title{margin:0;font-size:18px}
+.tagline{margin:0;color:var(--muted);font-size:13px}
+.nav{display:flex;gap:12px;align-items:center}
+.nav-link{color:var(--muted);text-decoration:none}
+.btn{padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:#fff;cursor:pointer}
+.btn:hover{filter:brightness(0.98)}
+.btn-ghost{background:transparent;border:1px solid transparent}
+.btn-primary{background:var(--accent);color:#fff;border:none}
+.btn-success{background:var(--success);color:#fff;border:none}
+.full{width:100%}
+
+/* Main grid */
+.main-grid{display:grid;grid-template-columns:320px 1fr;gap:20px;padding:28px 20px}
+@media (max-width:900px){.main-grid{grid-template-columns:1fr}}
+
+/* Panels */
+.panel{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.03);border:1px solid var(--border)}
+.side-panel{min-height:220px}
+.panel-title{margin:0 0 8px 0;font-size:15px}
+.muted{color:var(--muted);font-size:13px}
+.dropzone{border:2px dashed var(--border);padding:16px;text-align:center;border-radius:8px;cursor:pointer}
+.hidden{display:none}
+
+/* Controls */
+.controls{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.control-row{display:flex;align-items:center;gap:8px;font-size:14px}
+.status{margin-top:10px;color:var(--muted);font-size:13px}
+
+/* Preview area */
+.preview-wrap{display:flex;gap:12px;margin-top:12px;align-items:flex-start}
+.preview-canvas-wrap{flex:1;position:relative;border-radius:8px;overflow:hidden;background:#f3f4f6;padding:8px;min-height:240px}
+.preview-canvas{width:100%;height:auto;display:block;max-height:640px}
+.ocr-overlay{position:absolute;inset:8px;pointer-events:none}
+.bounding-box{position:absolute;border:2px dashed rgba(79,70,229,0.6);box-sizing:border-box;background:transparent}
+.progress-column{width:260px}
+.progress-bar{width:100%}
+.ocr-output{margin-top:8px;height:180px;overflow:auto;background:#fff;border:1px solid var(--border);padding:8px;border-radius:6px;font-size:13px;color:var(--muted)}
+
+/* Table & extracted names */
+.extracted{margin-top:14px}
+.search-row{display:flex;gap:8px;margin-top:8px}
+.input{padding:8px;border-radius:6px;border:1px solid var(--border);flex:1}
+.table-wrap{margin-top:10px;max-height:320px;overflow:auto;border-radius:6px;border:1px solid var(--border);background:#fff}
+.names-table{width:100%;border-collapse:collapse}
+.names-table th,.names-table td{padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:14px}
+
+/* Footer */
+.site-footer{padding:18px 0;text-align:center;color:var(--muted);font-size:13px;border-top:1px solid var(--border);margin-top:20px}
+
+/* Utilities */
+.hidden{display:none}
