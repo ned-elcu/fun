@@ -6,8 +6,10 @@
   <title>OCR Table Extractor — Names from Image</title>
   <meta name="description" content="Upload an image of a table of names; client-side OCR extracts and displays names in an editable, sortable table." />
   <link rel="icon" href="assets/icon.svg" />
-  <!-- Tailwind via CDN (SRI included). For GitHub Pages, this is acceptable; for production consider building locally. -->
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" integrity="sha384-PLACEHOLDER_INTEGRITY" crossorigin="anonymous">
+  <!-- Use Tailwind via the official CDN script to avoid invalid integrity errors -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Tesseract as a global script (so we can use createWorker in the module) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js" defer></script>
   <meta name="theme-color" content="#111827" />
   <style>
     /* Small helpful styles; keep most styling with Tailwind */
@@ -119,7 +121,7 @@
       <h2 class="text-sm font-medium">How it works</h2>
       <ol class="mt-2 text-sm text-gray-700 list-decimal list-inside space-y-1">
         <li>Load image → optional preprocessing (deskew/contrast).</li>
-        <li>OCR runs in a WebWorker using Tesseract.js; progress shown.</li>
+        <li>OCR runs in a Tesseract worker (provided by Tesseract.js); progress shown.</li>
         <li>Bounding boxes are parsed into rows; heuristics extract name tokens and clean them.</li>
         <li>Results are displayed; you can edit, export CSV, or copy results.</li>
       </ol>
@@ -134,15 +136,7 @@
 
   <footer class="mt-8 text-center text-xs text-gray-500 pb-8">MIT License • Designed for privacy — images stay local</footer>
 
-  <!-- Scripts -->
-  <script>
-    // Small bootstrap to load modules from assets
-    (function(){
-      const SCRIPTS = ['assets/ui.js'];
-      SCRIPTS.forEach(src => {
-        const s = document.createElement('script'); s.src = src; s.defer = true; document.body.appendChild(s);
-      });
-    })();
-  </script>
+  <!-- Load the main UI as an ES module so we can use `import`/`export` -->
+  <script type="module" src="assets/ui.js" defer></script>
 </body>
 </html>
