@@ -94,6 +94,8 @@ window.addEventListener('DOMContentLoaded', () => {
   sortSelect.addEventListener('change', filterAndSortRender);
 
   
+  
+  
   async function initWorker() {
     if (state.ocrWorker) return;
     if (typeof Tesseract === 'undefined' || typeof Tesseract.createWorker !== 'function') {
@@ -102,34 +104,37 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const logger = m => {
       if (m && m.status === 'recognizing text') {
-        try { progress.value = m.progress || 0; } catch {}
+        try { progress.value = m.progress || 0; } catch (e) {}
       }
       appendOCRLog(JSON.stringify(m));
     };
 
-    // Try Tesseract.js v6+/v5 API first: createWorker(lang, oem?, options?) returns a Promise that resolves to a ready worker.
-    try {
-      const maybePromise = Tesseract.createWorker('eng', undefined, { logger });
-      // await works for both Promise and non-Promise (it just returns the value)
-      state.ocrWorker = await maybePromise;
-    } catch (err) {
-      // Fallback to v4 API: createWorker(options) returns a worker object that still needs load() / loadLanguage() / initialize()
-      state.ocrWorker = Tesseract.createWorker({ logger });
-    }
+    // createWorker may return a worker or a promise resolving to a worker depending on build/version
+    let maybe = Tesseract.createWorker ? Tesseract.createWorker({ logger }) : null;
+    // await in case it's a promise
+    maybe = await maybe;
 
-    // v4 requires explicit load steps; v5/v6 return a ready worker without these functions.
-    if (state.ocrWorker && typeof state.ocrWorker.load === 'function') {
-      await state.ocrWorker.load();
-    }
-    if (state.ocrWorker && typeof state.ocrWorker.loadLanguage === 'function') {
-      await state.ocrWorker.loadLanguage('eng');
-    }
-    if (state.ocrWorker && typeof state.ocrWorker.initialize === 'function') {
-      await state.ocrWorker.initialize('eng');
+    state.ocrWorker = maybe;
+
+    // Some builds require explicit load / loadLanguage / initialize (older v4 style).
+    try {
+      if (state.ocrWorker && typeof state.ocrWorker.load === 'function') {
+        await state.ocrWorker.load();
+      }
+      if (state.ocrWorker && typeof state.ocrWorker.loadLanguage === 'function') {
+        await state.ocrWorker.loadLanguage('eng');
+      }
+      if (state.ocrWorker && typeof state.ocrWorker.initialize === 'function') {
+        await state.ocrWorker.initialize('eng');
+      }
+    } catch (e) {
+      // Non-fatal; log and continue. Worker may already be initialized.
+      appendOCRLog('Worker init skipped or failed: ' + (e && e.message ? e.message : String(e)));
     }
 
     setStatus('OCR worker ready.');
   }
+
 
   }
 
