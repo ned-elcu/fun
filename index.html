@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Extraction Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border: #dee2e6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        
+        .upload-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .results-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .drop-area {
+            border: 3px dashed var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: var(--light);
+            cursor: pointer;
+        }
+        
+        .drop-area:hover, .drop-area.dragover {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.05);
+        }
+        
+        .drop-area i {
+            font-size: 3rem;
+            color: var(--gray);
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+        
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+        }
+        
+        .image-preview {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .processing-status {
+            margin: 2rem 0;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .results {
+            margin-top: 2rem;
+        }
+        
+        .results textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .btn-secondary {
+            background: var(--gray);
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+        }
+        
+        .instructions {
+            background: #fff9e6;
+            border-left: 4px solid #ffcc00;
+            padding: 1rem;
+            margin: 2rem 0;
+            border-radius: 4px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Name Extraction Tool</h1>
+            <p class="subtitle">Upload an image containing a table of names and extract them as a text list</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="upload-section">
+                <div class="drop-area" id="dropArea">
+                    <i>📁</i>
+                    <h3>Drag & Drop your image here</h3>
+                    <p>or</p>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <button class="btn" id="browseBtn">Browse Files</button>
+                </div>
+                
+                <div class="image-preview" id="imagePreview">
+                    <!-- Image preview will appear here -->
+                </div>
+                
+                <div class="processing-status" id="processingStatus" style="display: none;">
+                    <h3>Processing Image...</h3>
+                    <div class="progress-bar">
+                        <div class="progress" id="progressBar"></div>
+                    </div>
+                    <p id="statusText">Initializing...</p>
+                </div>
+                
+                <div class="instructions">
+                    <h3>Tips for best results:</h3>
+                    <ul>
+                        <li>Use clear, high-contrast images</li>
+                        <li>Ensure names are clearly visible and not blurred</li>
+                        <li>Crop the image to focus on the table of names</li>
+                        <li>For printed text, use images with at least 300 DPI resolution</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="results-section">
+                <h2>Extracted Names</h2>
+                <div class="results">
+                    <textarea id="resultsText" placeholder="Extracted names will appear here..." readonly></textarea>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="copyBtn" disabled>Copy to Clipboard</button>
+                    <button class="btn btn-success" id="downloadBtn" disabled>Download as Text</button>
+                </div>
+                
+                <div class="instructions">
+                    <h3>How it works:</h3>
+                    <ol>
+                        <li>Upload an image containing a table of names</li>
+                        <li>The tool processes the image using OCR technology</li>
+                        <li>Extracted names appear in the text area</li>
+                        <li>Copy or download the results for your use</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Powered by Tesseract.js | Deployable on GitHub Pages</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('dropArea');
+            const fileInput = document.getElementById('fileInput');
+            const browseBtn = document.getElementById('browseBtn');
+            const imagePreview = document.getElementById('imagePreview');
+            const processingStatus = document.getElementById('processingStatus');
+            const progressBar = document.getElementById('progressBar');
+            const statusText = document.getElementById('statusText');
+            const resultsText = document.getElementById('resultsText');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            let currentFile = null;
+            
+            // Event listeners for drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropArea.classList.add('dragover');
+            }
+            
+            function unhighlight() {
+                dropArea.classList.remove('dragover');
+            }
+            
+            dropArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+            
+            browseBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', () => {
+                handleFiles(fileInput.files);
+            });
+            
+            copyBtn.addEventListener('click', copyToClipboard);
+            downloadBtn.addEventListener('click', downloadText);
+            
+            function handleFiles(files) {
+                if (files.length > 0) {
+                    currentFile = files[0];
+                    previewImage(currentFile);
+                    processImage(currentFile);
+                }
+            }
+            
+            function previewImage(file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // Clear previous preview
+                    imagePreview.innerHTML = '';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    imagePreview.appendChild(img);
+                }
+                
+                reader.readAsDataURL(file);
+            }
+            
+            function processImage(file) {
+                // Show processing status
+                processingStatus.style.display = 'block';
+                progressBar.style.width = '0%';
+                statusText.textContent = 'Initializing OCR engine...';
+                
+                // Reset results
+                resultsText.value = '';
+                copyBtn.disabled = true;
+                downloadBtn.disabled = true;
+                
+                Tesseract.recognize(
+                    file,
+                    'eng', // English language
+                    {
+                        logger: message => updateProgress(message)
+                    }
+                ).then(({ data: { text } }) => {
+                    // Processing complete
+                    statusText.textContent = 'Processing complete!';
+                    progressBar.style.width = '100%';
+                    
+                    // Format and display the extracted text
+                    formatResults(text);
+                    
+                    // Enable action buttons
+                    copyBtn.disabled = false;
+                    downloadBtn.disabled = false;
+                }).catch(err => {
+                    console.error(err);
+                    statusText.textContent = 'Error: ' + err.message;
+                });
+            }
+            
+            function updateProgress(message) {
+                if (message.status === 'recognizing text') {
+                    // Update progress bar based on progress
+                    const progress = message.progress * 100;
+                    progressBar.style.width = `${progress}%`;
+                    statusText.textContent = `Processing: ${Math.round(progress)}%`;
+                }
+            }
+            
+            function formatResults(text) {
+                // Basic processing to clean up the OCR results
+                // This is where you might add custom logic for your specific table format
+                
+                // Split into lines and clean up
+                let lines = text.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0);
+                
+                // Try to detect and remove header/footer lines
+                // This is a simple approach - you might need to customize based on your table format
+                if (lines.length > 2) {
+                    // Check if first line might be a header (all caps, contains certain words)
+                    const firstLine = lines[0];
+                    if (firstLine === firstLine.toUpperCase() || 
+                        firstLine.includes('Name') || 
+                        firstLine.includes('NAME')) {
+                        lines = lines.slice(1);
+                    }
+                }
+                
+                // Join back with line breaks
+                resultsText.value = lines.join('\n');
+            }
+            
+            function copyToClipboard() {
+                resultsText.select();
+                document.execCommand('copy');
+                
+                // Provide visual feedback
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }
+            
+            function downloadText() {
+                const blob = new Blob([resultsText.value], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'extracted_names.txt';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
