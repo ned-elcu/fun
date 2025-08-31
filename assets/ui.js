@@ -1,16 +1,17 @@
-// ui.js (module)
+// ui.js (ES module)
 // Main UI glue: handles file input, canvas preview, Tesseract worker usage, and table UI.
 
 import { groupBoxesToRows, extractNamesFromRows, uniqueFuzzy } from './parser.js';
 
 const state = {
-  image: null,
-  ocrWorker: null, // Tesseract worker instance (created via Tesseract.createWorker)
+  image: null,           // data URL of image shown on canvas
+  imageWidth: 0,
+  imageHeight: 0,
+  ocrWorker: null,       // Tesseract worker instance
   names: [],
-  lastId: 0,
 };
 
-function $(id){return document.getElementById(id);}
+function $(id){ return document.getElementById(id); }
 
 window.addEventListener('DOMContentLoaded', () => {
   const dropzone = $('dropzone');
@@ -27,46 +28,79 @@ window.addEventListener('DOMContentLoaded', () => {
   const copyBtn = $('copyBtn');
   const exportBtn = $('exportBtn');
   const resetBtn = $('resetBtn');
+  const statusEl = $('status');
 
-  // Drag-drop handlers
-  ['dragenter','dragover'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.add('border-indigo-300'); }));
-  ['dragleave','drop'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.remove('border-indigo-300'); }));
-  dropzone.addEventListener('drop', (e)=>{ const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadFile(f); });
-  dropzone.addEventListener('click', ()=> fileInput.click());
-  fileInput.addEventListener('change', (e)=> { const f = e.target.files[0]; if (f) loadFile(f); });
+  // Drag/drop handlers
+  ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drop-active'); }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drop-active'); }));
+  dropzone.addEventListener('drop', e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadFile(f); });
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
 
-  // Paste support
-  window.addEventListener('paste', (e)=>{
-    const item = e.clipboardData.items[0]; if (item && item.type.startsWith('image/')){ const blob = item.getAsFile(); loadFile(blob); }
-  });
-
-  processBtn.addEventListener('click', async ()=>{
-    if (!state.image) { setStatus('No image loaded.'); return; }
-    setStatus('Initializing OCR...');
-    await initWorker();
-    setStatus('Running OCR — this may take a few seconds.');
-
-    try {
-      const res = await state.ocrWorker.recognize(state.image);
-      appendOCRLog('OCR complete');
-      progress.value = 1;
-      handleTesseractResult(res);
-    } catch (err) {
-      setStatus('OCR Error: ' + (err && err.message ? err.message : String(err)));
+  // Paste image support
+  window.addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const it of items) {
+      if (it.type && it.type.indexOf('image') !== -1) {
+        const blob = it.getAsFile();
+        loadFile(blob);
+        break;
+      }
     }
   });
 
-  overlayToggle.addEventListener('change', ()=>{ ocrOverlay.classList.toggle('hidden', !overlayToggle.checked); if (overlayToggle.checked) renderOverlay([]); });
+  processBtn.addEventListener('click', async () => {
+    if (!state.image) { setStatus('No image loaded.'); return; }
+    try {
+      setStatus('Initializing OCR...');
+      await initWorker();
+      setStatus('Running OCR — this may take a few seconds.');
+      const res = await state.ocrWorker.recognize(state.image);
+      // optional: keep the worker for subsequent runs, or terminate to free memory
+      // await state.ocrWorker.terminate();
+      // state.ocrWorker = null;
+      handleTesseractResult(res);
+      setStatus('OCR finished.');
+    } catch (err) {
+      setStatus('OCR Error: ' + (err && err.message ? err.message : String(err)));
+      console.error(err);
+    }
+  });
 
-  function appendOCRLog(s){ ocrOutput.textContent += '\n' + s; ocrOutput.scrollTop = ocrOutput.scrollHeight; }
+  overlayToggle.addEventListener('change', () => {
+    ocrOverlay.classList.toggle('hidden', !overlayToggle.checked);
+  });
 
-  async function initWorker(){
+  copyBtn.addEventListener('click', async () => {
+    const csv = toCSV(state.names);
+    try {
+      await navigator.clipboard.writeText(csv);
+      setStatus('Copied CSV to clipboard');
+    } catch (e) {
+      setStatus('Copy failed: ' + e.message);
+    }
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const csv = toCSV(state.names);
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'names.csv'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  resetBtn.addEventListener('click', resetAll);
+  searchInput.addEventListener('input', filterAndSortRender);
+  sortSelect.addEventListener('change', filterAndSortRender);
+
+  async function initWorker() {
     if (state.ocrWorker) return;
-    if (typeof Tesseract === 'undefined') { setStatus('Tesseract.js not loaded'); throw new Error('Tesseract.js not loaded'); }
-    setStatus('Loading Tesseract worker (this may download ~3–10 MB)...');
+    if (typeof Tesseract === 'undefined') {
+      throw new Error('Tesseract.js not loaded (network issue?)');
+    }
+    // createWorker returns a worker instance that runs OCR in background thread(s)
     state.ocrWorker = Tesseract.createWorker({
       logger: m => {
-        // m: { status: 'recognizing text'|'initialized'|..., progress: 0.xx }
         if (m && m.status === 'recognizing text') {
           progress.value = m.progress || 0;
         }
@@ -76,113 +110,138 @@ window.addEventListener('DOMContentLoaded', () => {
     await state.ocrWorker.load();
     await state.ocrWorker.loadLanguage('eng');
     await state.ocrWorker.initialize('eng');
+    // set some parameters to favor accuracy (optional)
+    // await state.ocrWorker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM_AUTO });
     setStatus('OCR worker ready.');
   }
 
-  async function handleTesseractResult(res){
-    // Tesseract result structure: res.data.words / res.data.symbols etc.
+  function appendOCRLog(s) {
+    ocrOutput.textContent += '\n' + s;
+    ocrOutput.scrollTop = ocrOutput.scrollHeight;
+  }
+
+  function handleTesseractResult(res) {
+    // Build boxes from words / symbols
     const boxes = [];
-    try{
-      const words = res.data && res.data.words ? res.data.words : [];
+    try {
+      const words = res && res.data && res.data.words ? res.data.words : [];
       for (const w of words) {
+        // w.bbox: { x0, y0, x1, y1 }
         boxes.push({ text: w.text, bbox: { x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 } });
       }
       const rows = groupBoxesToRows(boxes, Math.max(8, Math.round(previewCanvas.height * 0.02)));
       const names = extractNamesFromRows(rows);
-      const fuzzy = $('fuzzyToggle').checked ? uniqueFuzzy(names) : names;
-      state.names = fuzzy.filter(Boolean);
+      const final = $('fuzzyToggle').checked ? uniqueFuzzy(names) : names;
+      state.names = final.filter(Boolean);
       renderTable();
       if ($('overlayToggle').checked) renderOverlay(rows);
       setStatus('Extraction complete — ' + state.names.length + ' names found.');
-    } catch (err){ setStatus('Parsing error: ' + err.message); }
+    } catch (err) {
+      console.error(err);
+      setStatus('Parsing error: ' + (err && err.message ? err.message : String(err)));
+    }
   }
 
-  function renderOverlay(rows){
+  function renderOverlay(rows) {
     ocrOverlay.innerHTML = '';
-    const scaleX = previewCanvas.width / (state.imageWidth || previewCanvas.width);
-    const scaleY = previewCanvas.height / (state.imageHeight || previewCanvas.height);
+    if (!rows || !rows.length) return;
+    // scale from OCR coordinate system to canvas
+    const scaleX = previewCanvas.width / state.imageWidth;
+    const scaleY = previewCanvas.height / state.imageHeight;
     for (const r of rows) {
       for (const b of r.items) {
-        const el = document.createElement('div'); el.className = 'bounding-box';
-        el.style.left = (b.bbox.x0 * scaleX) + 'px';
-        el.style.top = (b.bbox.y0 * scaleY) + 'px';
-        el.style.width = ((b.bbox.x1 - b.bbox.x0) * scaleX) + 'px';
-        el.style.height = ((b.bbox.y1 - b.bbox.y0) * scaleY) + 'px';
+        const el = document.createElement('div');
+        el.className = 'bounding-box';
+        const left = Math.round(b.bbox.x0 * scaleX);
+        const top = Math.round(b.bbox.y0 * scaleY);
+        const w = Math.round((b.bbox.x1 - b.bbox.x0) * scaleX);
+        const h = Math.round((b.bbox.y1 - b.bbox.y0) * scaleY);
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+        el.style.width = Math.max(2, w) + 'px';
+        el.style.height = Math.max(2, h) + 'px';
         ocrOverlay.appendChild(el);
       }
     }
   }
 
-  function renderTable(){
+  function renderTable() {
     namesTableBody.innerHTML = '';
-    state.names.forEach((n,i)=>{
+    state.names.forEach((n, i) => {
       const tr = document.createElement('tr');
-      const inputId = 'name-input-' + i;
-      tr.innerHTML = `<td class="p-2 text-xs">${i+1}</td><td class="p-2 text-sm"><input id="${inputId}" aria-label="name-${i}" class="w-full p-1 border rounded text-sm" /></td><td class="p-2 text-sm"><button data-i="${i}" class="delBtn px-2 py-1 text-xs border rounded">Delete</button></td>`;
+      tr.innerHTML = `<td>${i+1}</td><td><input aria-label="name-${i}" class="input" value="${escapeHtml(n)}" /></td><td><button data-i="${i}" class="btn">Delete</button></td>`;
       namesTableBody.appendChild(tr);
-      const inputEl = document.getElementById(inputId);
-      inputEl.value = n;
-      inputEl.addEventListener('change', (e)=>{ state.names[i] = e.target.value; });
-      tr.querySelector('.delBtn').addEventListener('click', ()=>{ state.names.splice(i,1); renderTable(); });
+      const input = tr.querySelector('input');
+      input.addEventListener('change', (e) => { state.names[i] = e.target.value; });
+      tr.querySelector('button').addEventListener('click', () => { state.names.splice(i,1); renderTable(); });
     });
   }
 
-  searchInput.addEventListener('input', ()=>{ filterAndSortRender(); });
-  sortSelect.addEventListener('change', ()=>{ filterAndSortRender(); });
-
-  copyBtn.addEventListener('click', ()=>{
-    const csv = toCSV(state.names);
-    navigator.clipboard.writeText(csv).then(()=> setStatus('Copied CSV to clipboard')).catch(()=> setStatus('Copy failed'));
-  });
-  exportBtn.addEventListener('click', ()=>{
-    const csv = toCSV(state.names);
-    const blob = new Blob([csv],{type:'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'names.csv'; a.click(); URL.revokeObjectURL(url);
-  });
-
-  resetBtn.addEventListener('click', ()=>{ resetAll(); });
-
-  function filterAndSortRender(){
+  function filterAndSortRender() {
     const q = searchInput.value.toLowerCase();
     const sort = sortSelect.value;
     let list = state.names.filter(n => n.toLowerCase().includes(q));
-    list.sort((a,b)=> sort==='asc' ? a.localeCompare(b) : b.localeCompare(a));
+    list.sort((a,b) => sort === 'asc' ? a.localeCompare(b) : b.localeCompare(a));
     namesTableBody.innerHTML = '';
-    list.forEach((n,i)=>{
+    list.forEach((n,i) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td class="p-2 text-xs">${i+1}</td><td class="p-2 text-sm">${escapeHtml(n)}</td><td class="p-2 text-sm"></td>`;
+      tr.innerHTML = `<td>${i+1}</td><td>${escapeHtml(n)}</td><td></td>`;
       namesTableBody.appendChild(tr);
     });
   }
 
-  function toCSV(list){
-    return list.map(s => '"' + s.replace(/"/g,'""') + '"').join('\n');
+  function toCSV(list) {
+    return list.map(s => '"' + (s || '').replace(/"/g,'""') + '"').join('\n');
   }
 
-  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
 
-  function setStatus(s){ $('status').textContent = s; }
+  function setStatus(s) { statusEl.textContent = s; }
 
-  function resetAll(){ state.image = null; state.names = []; if (state.ocrWorker) { state.ocrWorker.terminate(); state.ocrWorker = null; } $('previewCanvas').getContext('2d').clearRect(0,0, $('previewCanvas').width, $('previewCanvas').height); $('ocrOutput').textContent=''; $('namesTable').querySelector('tbody').innerHTML=''; setStatus('Reset.'); }
+  function resetAll() {
+    state.image = null;
+    state.imageWidth = 0;
+    state.imageHeight = 0;
+    state.names = [];
+    if (state.ocrWorker) { state.ocrWorker.terminate(); state.ocrWorker = null; }
+    const ctx = previewCanvas.getContext('2d');
+    ctx.clearRect(0,0,previewCanvas.width, previewCanvas.height);
+    $('ocrOutput').textContent = '';
+    $('namesTable').querySelector('tbody').innerHTML = '';
+    setStatus('Reset.');
+  }
 
-  async function loadFile(file){
+  async function loadFile(file) {
     setStatus('Loading image...');
-    const blobURL = URL.createObjectURL(file);
     const img = new Image();
+    const blobURL = URL.createObjectURL(file);
     img.onload = () => {
-      const ctx = previewCanvas.getContext('2d');
-      const maxW = 1200; const maxH = 900;
-      let w = img.width; let h = img.height; const scale = Math.min(maxW/w, maxH/h, 1);
-      previewCanvas.width = Math.round(w * scale);
-      previewCanvas.height = Math.round(h * scale);
-      ctx.clearRect(0,0,previewCanvas.width, previewCanvas.height);
-      ctx.drawImage(img,0,0, previewCanvas.width, previewCanvas.height);
-      state.image = blobURL;
-      state.imageWidth = img.width; state.imageHeight = img.height;
+      // store original size
+      state.imageWidth = img.naturalWidth;
+      state.imageHeight = img.naturalHeight;
+      // fit canvas to max sizes but preserve aspect ratio
+      const maxW = 1200, maxH = 900;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const scale = Math.min(maxW / w, maxH / h, 1);
+      const cw = Math.round(w * scale);
+      const ch = Math.round(h * scale);
+      const canvas = previewCanvas;
+      canvas.width = cw;
+      canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // keep a data URL for Tesseract; this avoids blob/URL issues in some browsers
+      state.image = canvas.toDataURL('image/png');
       setStatus('Image loaded. Ready to process.');
+      URL.revokeObjectURL(blobURL);
     };
-    img.onerror = ()=> setStatus('Failed to load image');
+    img.onerror = () => {
+      setStatus('Failed to load image.');
+      URL.revokeObjectURL(blobURL);
+    };
     img.src = blobURL;
   }
 

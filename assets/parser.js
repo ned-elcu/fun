@@ -44,7 +44,7 @@ export function normalizeName(s) {
   if (!s) return null;
   // Basic Unicode normalization
   let t = s.replace(/[\u00A0]/g,' ').replace(/\s+/g,' ').trim();
-  // Remove table-like noise
+  // Remove table-like noise (allow letters, numbers, spaces, dots, commas, hyphens, apostrophes)
   t = t.replace(/[^\p{L}\p{N} .,\-']/gu, '');
   // collapse multiple punctuation
   t = t.replace(/[.,\-']{2,}/g, match => match[0]);
