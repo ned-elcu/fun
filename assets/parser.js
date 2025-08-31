@@ -1,1 +1,0 @@
-// Parser logic from canvas goes here

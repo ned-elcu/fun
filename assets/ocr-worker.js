@@ -1,1 +1,0 @@
-// OCR worker script from canvas goes here

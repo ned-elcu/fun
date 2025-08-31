@@ -1,1 +1,0 @@
-// UI helper functions from canvas goes here
