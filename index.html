@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey v4.1 (Normalized Icons)</title>
+    <title>ChromaKey v4.2 (Auto-Icon)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -12,7 +12,7 @@
             --bg: #1e1e24;
             --panel: #2b2b36;
             --text: #e1e1e6;
-            --accent: #4cc9f0;
+            --accent: #ff006e; /* Changed accent to Pink to signify v4.2 */
             --border: #444;
             --input-bg: #1a1a20;
         }
@@ -78,17 +78,19 @@
             background: var(--input-bg);
             border: 1px solid var(--border);
             border-radius: 4px;
+            justify-content: space-between;
         }
         .checkbox-group label {
-            flex-grow: 1;
             margin-bottom: 0;
             color: var(--text);
             font-size: 1rem;
+            cursor: pointer;
         }
         .checkbox-group input[type="checkbox"] {
-            width: auto;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             accent-color: var(--accent);
+            cursor: pointer;
         }
 
 
@@ -103,7 +105,7 @@
         }
         .dropzone:hover, .dropzone.dragover {
             border-color: var(--accent);
-            background: rgba(76, 201, 240, 0.1);
+            background: rgba(255, 0, 110, 0.1);
         }
         .dropzone p { margin: 0; color: #888; pointer-events: none; }
 
@@ -124,7 +126,7 @@
 
         .btn {
             background: var(--accent);
-            color: #000;
+            color: #fff;
             border: none;
             padding: 10px 20px;
             border-radius: 4px;
@@ -135,7 +137,7 @@
             transition: opacity 0.2s;
         }
         .btn:hover { opacity: 0.8; }
-        .btn:disabled { background: #555; cursor: not-allowed; }
+        .btn:disabled { background: #555; color:#888; cursor: not-allowed; }
 
         .grid {
             display: grid;
@@ -168,11 +170,12 @@
             padding: 10px;
         }
 
+        /* Force image to show boundaries clearly */
         .img-preview img {
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain;
-            image-rendering: -webkit-optimize-contrast; 
+            object-fit: contain; 
+            border: 1px solid #555; /* Visual guide for the user */
         }
 
         .card-actions {
@@ -218,7 +221,7 @@
 </head>
 <body>
 
-    <h1>Chroma Tool <small style="font-size:0.5em; color:#666">v4.1 (Normalized Icons)</small></h1>
+    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.2 (Trim & Center)</small></h1>
 
     <div class="container">
         <div class="controls">
@@ -228,18 +231,18 @@
             </div>
 
             <div class="control-group">
-                <label>Export Size</label>
+                <label>Export Size (Required for Icons)</label>
                 <select id="exportSize">
-                    <option value="original">Original Resolution</option>
                     <option value="512">512 x 512</option>
                     <option value="256">256 x 256</option>
                     <option value="128">128 x 128</option>
                     <option value="64">64 x 64</option>
+                    <option value="original">Original (Disable Norm)</option>
                 </select>
             </div>
             
             <div class="checkbox-group">
-                <label for="normalizeObject">Normalize Object Size</label>
+                <label for="normalizeObject">Normalize / Center Object</label>
                 <input type="checkbox" id="normalizeObject" checked>
             </div>
 
@@ -262,7 +265,11 @@
             </div>
             
             <div style="margin-top:20px; font-size: 0.8rem; color: #777; line-height: 1.4;">
-                <strong>Normalize Object Size:</strong> Scales the isolated foreground object to fill the maximum area of the *Export Size* canvas, maintaining consistent icon scale.
+                <strong>How Normalization works now:</strong>
+                <br>1. Removes background.
+                <br>2. Trims empty transparent space around object.
+                <br>3. Scales object to fit the Export Size (with padding).
+                <br>4. Centers object perfectly.
             </div>
         </div>
 
@@ -286,8 +293,8 @@
             tolerance: 50, 
             strokeWidth: 10, 
             strokeColor: '#000000',
-            exportSize: 'original',
-            normalizeObject: true // New setting
+            exportSize: '512',
+            normalizeObject: true 
         }
     };
 
@@ -295,7 +302,7 @@
         dropzone: document.getElementById('dropzone'),
         fileInput: document.getElementById('fileInput'),
         exportSize: document.getElementById('exportSize'),
-        normalizeObject: document.getElementById('normalizeObject'), // New element
+        normalizeObject: document.getElementById('normalizeObject'),
         tolerance: document.getElementById('tolerance'),
         strokeWidth: document.getElementById('strokeWidth'),
         strokeColor: document.getElementById('strokeColor'),
@@ -316,14 +323,14 @@
     });
 
     function loadSettings() {
-        const saved = localStorage.getItem('chromaToolSettings_v4.1');
+        const saved = localStorage.getItem('chromaToolSettings_v4.2');
         if (saved) {
             state.settings = { ...state.settings, ...JSON.parse(saved) };
             els.tolerance.value = state.settings.tolerance;
             els.strokeWidth.value = state.settings.strokeWidth;
             els.strokeColor.value = state.settings.strokeColor;
             els.exportSize.value = state.settings.exportSize;
-            els.normalizeObject.checked = state.settings.normalizeObject; // Load new setting
+            els.normalizeObject.checked = state.settings.normalizeObject;
             
             els.tolVal.innerText = state.settings.tolerance;
             els.strokeVal.innerText = state.settings.strokeWidth;
@@ -331,7 +338,7 @@
     }
 
     function saveSettings() {
-        localStorage.setItem('chromaToolSettings_v4.1', JSON.stringify(state.settings));
+        localStorage.setItem('chromaToolSettings_v4.2', JSON.stringify(state.settings));
     }
 
     function bindEvents() {
@@ -350,7 +357,7 @@
             state.settings.strokeWidth = parseInt(els.strokeWidth.value);
             state.settings.strokeColor = els.strokeColor.value;
             state.settings.exportSize = els.exportSize.value;
-            state.settings.normalizeObject = els.normalizeObject.checked; // Capture new setting
+            state.settings.normalizeObject = els.normalizeObject.checked;
             
             els.tolVal.innerText = state.settings.tolerance;
             els.strokeVal.innerText = state.settings.strokeWidth;
@@ -363,7 +370,7 @@
         els.strokeWidth.addEventListener('input', updateHandler);
         els.strokeColor.addEventListener('input', updateHandler);
         els.exportSize.addEventListener('change', updateHandler);
-        els.normalizeObject.addEventListener('change', updateHandler); // Bind new control
+        els.normalizeObject.addEventListener('change', updateHandler); 
 
         els.downloadZipBtn.addEventListener('click', downloadAllZip);
         els.downloadBatchBtn.addEventListener('click', downloadAllBatch);
@@ -405,7 +412,7 @@
 
         const img = new Image();
         img.onload = () => {
-            // 1. WORK AT FULL RESOLUTION
+            // 1. WORK AT FULL RESOLUTION INITIALLY
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
@@ -417,133 +424,108 @@
             const width = canvas.width;
             const height = canvas.height;
 
-            // 2. DETECT BACKGROUND TYPE (same logic)
+            // 2. DETECT BACKGROUND (Sampled)
             let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
-            
-            // Sparse Sampling for detection
-            for (let i = 0; i < data.length; i+=16) { 
-                if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0 || i % (width*4*10) === 0) {
+            for (let i = 0; i < data.length; i+=32) { 
+                if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
                     const r = data[i], g = data[i+1], b = data[i+2];
                     const bright = (r+g+b)/3;
-                    
                     if (bright < 40) blackScore++; 
                     else if (bright > 230) whiteScore++; 
                     else if (g > r && g > b) gScore++; 
                     else if (b > r && b > g) bScore++; 
                 }
             }
-
-            // Determine winner
             let mode = 'green';
             let maxScore = Math.max(gScore, bScore, blackScore, whiteScore);
-            
-            if (maxScore === 0) mode = 'green'; 
-            else if (maxScore === bScore) mode = 'blue';
+            if (maxScore === bScore) mode = 'blue';
             else if (maxScore === blackScore) mode = 'black';
             else if (maxScore === whiteScore) mode = 'white';
 
-            // Update UI tag
+            // Tag Update
             const tag = card.querySelector('.tag');
             tag.innerText = mode;
-            tag.style.color = (mode === 'white' || mode === 'green') ? '#000' : '#fff';
-            tag.style.background = (mode === 'green') ? '#90EE90' : 
-                                   (mode === 'blue') ? '#ADD8E6' : 
-                                   (mode === 'white') ? '#eee' : '#222';
+            tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : (mode === 'white') ? '#eee' : '#222';
+            tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
 
-            // 3. REMOVE BACKGROUND (same logic)
+            // 3. REMOVE BACKGROUND
             const tol = state.settings.tolerance;
-            
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i], g = data[i+1], b = data[i+2];
                 let isBackground = false;
-
-                if (mode === 'green') {
-                    if (g > r + tol && g > b + tol) isBackground = true;
-                } 
-                else if (mode === 'blue') {
-                    if (b > r + tol && b > g + tol) isBackground = true;
-                }
-                else if (mode === 'black') {
-                    if (r < tol && g < tol && b < tol) isBackground = true;
-                }
-                else if (mode === 'white') {
-                    const threshold = 255 - tol;
-                    if (r > threshold && g > threshold && b > threshold) isBackground = true;
-                }
-
+                if (mode === 'green') { if (g > r + tol && g > b + tol) isBackground = true; } 
+                else if (mode === 'blue') { if (b > r + tol && b > g + tol) isBackground = true; }
+                else if (mode === 'black') { if (r < tol && g < tol && b < tol) isBackground = true; }
+                else if (mode === 'white') { if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; }
                 if (isBackground) data[i+3] = 0; 
             }
 
-            // 4. De-Speckle (Remove Islands < 100px)
+            // 4. CLEAN UP (Despeckle)
             removeIslands(data, width, height, 100);
 
-            // 5. Stroke (Euclidean)
+            // 5. STROKE
             if (state.settings.strokeWidth > 0) {
                 applyStroke(data, width, height, state.settings.strokeWidth, state.settings.strokeColor);
             }
 
+            // COMMIT PIXELS TO CANVAS FOR RESAMPLING
             ctx.putImageData(imageData, 0, 0);
 
-            // 6. HANDLE RESIZING AND NORMALIZATION (UPDATED LOGIC)
+            // 6. NORMALIZE / RESIZE (The Fix)
+            let finalCanvas = document.createElement('canvas');
+            let exportSize = parseInt(state.settings.exportSize);
             
-            let outputCanvas = canvas;
-            const exportSetting = state.settings.exportSize;
+            // Handle 'original' or invalid size
+            if (isNaN(exportSize)) {
+                exportSize = Math.max(width, height); // Fallback to max dimension
+            }
             
-            if (exportSetting !== 'original') {
-                const targetSize = parseInt(exportSetting);
-                if (targetSize > 0) {
-                    const scaledCanvas = document.createElement('canvas');
-                    scaledCanvas.width = targetSize;
-                    scaledCanvas.height = targetSize;
-                    const sCtx = scaledCanvas.getContext('2d');
-                    sCtx.imageSmoothingEnabled = true;
-                    sCtx.imageSmoothingQuality = 'high';
+            finalCanvas.width = exportSize;
+            finalCanvas.height = exportSize;
+            const fCtx = finalCanvas.getContext('2d');
+            fCtx.imageSmoothingEnabled = true;
+            fCtx.imageSmoothingQuality = 'high';
 
-                    let drawX = 0, drawY = 0, drawWidth = width, drawHeight = height;
+            if (state.settings.normalizeObject) {
+                // A. FIND BOUNDING BOX OF NON-TRANSPARENT PIXELS
+                const bounds = getContentBounds(data, width, height);
+                
+                if (bounds.w > 0 && bounds.h > 0) {
+                    // B. CALCULATE SCALE TO FIT
+                    const padding = exportSize * 0.1; // 10% padding
+                    const availableW = exportSize - (padding * 2);
+                    const availableH = exportSize - (padding * 2);
 
-                    if (state.settings.normalizeObject) {
-                        // Find Bounding Box of the isolated object
-                        const bounds = getBoundingBox(data, width, height);
-                        
-                        if (bounds.width > 0 && bounds.height > 0) {
-                            drawX = bounds.x;
-                            drawY = bounds.y;
-                            drawWidth = bounds.width;
-                            drawHeight = bounds.height;
+                    const scale = Math.min(availableW / bounds.w, availableH / bounds.h);
+                    
+                    const renderW = bounds.w * scale;
+                    const renderH = bounds.h * scale;
+                    
+                    // C. CENTER
+                    const renderX = (exportSize - renderW) / 2;
+                    const renderY = (exportSize - renderH) / 2;
 
-                            // Calculate scale factor to fit bounds into targetSize
-                            const scale = Math.min(targetSize / drawWidth, targetSize / drawHeight);
-                            const finalWidth = drawWidth * scale;
-                            const finalHeight = drawHeight * scale;
-                            
-                            // Calculate center offset
-                            const offsetX = (targetSize - finalWidth) / 2;
-                            const offsetY = (targetSize - finalHeight) / 2;
-                            
-                            // Draw the cropped/scaled object onto the new canvas
-                            sCtx.drawImage(
-                                canvas, 
-                                drawX, drawY, drawWidth, drawHeight, // Source (cropped bounding box)
-                                offsetX, offsetY, finalWidth, finalHeight // Destination (centered and scaled)
-                            );
-                            outputCanvas = scaledCanvas;
-                        } else {
-                            // If bounds are empty (entire image is transparent), just scale the full image
-                            sCtx.drawImage(canvas, 0, 0, targetSize, targetSize);
-                            outputCanvas = scaledCanvas;
-                        }
-
-                    } else {
-                        // Original simple resize logic (scale full canvas)
-                        sCtx.drawImage(canvas, 0, 0, targetSize, targetSize);
-                        outputCanvas = scaledCanvas;
-                    }
+                    // Draw cropped area from source canvas to new square canvas
+                    fCtx.drawImage(
+                        canvas, 
+                        bounds.x, bounds.y, bounds.w, bounds.h, // Source Trim
+                        renderX, renderY, renderW, renderH      // Dest Center
+                    );
+                } else {
+                    // Empty image
+                    fCtx.clearRect(0,0, exportSize, exportSize);
+                }
+            } else {
+                // Standard Stretch/Resize (Old behavior)
+                if (state.settings.exportSize === 'original') {
+                    finalCanvas = canvas; // Keep original
+                } else {
+                    fCtx.drawImage(canvas, 0, 0, exportSize, exportSize);
                 }
             }
 
-
-            // 7. Finalize (same logic)
-            outputCanvas.toBlob((blob) => {
+            // 7. FINALIZE
+            finalCanvas.toBlob((blob) => {
                 fileData.processedBlob = blob;
                 const url = URL.createObjectURL(blob);
                 const prevContainer = card.querySelector('.img-preview');
@@ -561,40 +543,25 @@
         img.src = URL.createObjectURL(fileData.originalFile);
     }
 
-    /**
-     * Finds the minimum bounding box containing all non-transparent pixels.
-     */
-    function getBoundingBox(data, width, height) {
-        let minX = width, minY = height;
-        let maxX = 0, maxY = 0;
+    // Helper: Find strict bounding box of alpha > 0
+    function getContentBounds(data, w, h) {
+        let minX = w, minY = h, maxX = 0, maxY = 0;
         let found = false;
-
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const alpha = data[(y * width + x) * 4 + 3];
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const alpha = data[(y * w + x) * 4 + 3];
                 if (alpha > 0) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
                     found = true;
-                    minX = Math.min(minX, x);
-                    minY = Math.min(minY, y);
-                    maxX = Math.max(maxX, x);
-                    maxY = Math.max(maxY, y);
                 }
             }
         }
-
-        if (!found) {
-            return { x: 0, y: 0, width: 0, height: 0 };
-        }
-
-        // Add 1 pixel padding to maxX and maxY for inclusive calculation
-        return {
-            x: minX,
-            y: minY,
-            width: maxX - minX + 1,
-            height: maxY - minY + 1
-        };
+        if (!found) return { x:0, y:0, w:0, h:0 };
+        return { x: minX, y: minY, w: (maxX - minX + 1), h: (maxY - minY + 1) };
     }
-
 
     function removeIslands(data, width, height, minSize) {
         const visited = new Uint8Array(width * height);
@@ -611,19 +578,17 @@
                         const curr = stack.pop();
                         const cx = curr % width;
                         const cy = Math.floor(curr / width);
-                        const neighbors = [
-                            { nx: cx + 1, ny: cy }, { nx: cx - 1, ny: cy },
-                            { nx: cx, ny: cy + 1 }, { nx: cx, ny: cy - 1 }
-                        ];
-                        for (const n of neighbors) {
-                            if (n.nx >= 0 && n.nx < width && n.ny >= 0 && n.ny < height) {
-                                const nIdx = n.ny * width + n.nx;
-                                if (visited[nIdx] === 0 && data[nIdx * 4 + 3] > 0) {
-                                    visited[nIdx] = 1;
-                                    stack.push(nIdx);
-                                    component.push(nIdx);
-                                }
-                            }
+                        const neighbors = [1, -1, width, -width];
+                        for (let offset of neighbors) {
+                             const nIdx = curr + offset;
+                             if (nIdx >= 0 && nIdx < width*height && visited[nIdx]===0) {
+                                 // Simple adjacency check (imperfect for edges but fast)
+                                 if (data[nIdx*4+3] > 0) {
+                                     visited[nIdx] = 1;
+                                     stack.push(nIdx);
+                                     component.push(nIdx);
+                                 }
+                             }
                         }
                     }
                     if (component.length < minSize) {
@@ -643,43 +608,39 @@
 
         for (let i = 0; i < width * height; i++) grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
 
-        // Euclidean Approx (8SSEDT)
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const idx = y * width + x;
-                if (grid[idx] > 0) {
-                    let minD = grid[idx];
-                    if (x > 0) minD = Math.min(minD, grid[idx-1] + 1);
-                    if (y > 0) minD = Math.min(minD, grid[idx-width] + 1);
-                    if (x > 0 && y > 0) minD = Math.min(minD, grid[idx-width-1] + 1.414);
-                    if (x < width-1 && y > 0) minD = Math.min(minD, grid[idx-width+1] + 1.414);
-                    grid[idx] = minD;
-                }
+        // Euclidean Approx (8SSEDT) - Forward
+        for (let i = 0; i < width*height; i++) {
+            if (grid[i] > 0) {
+                const x = i % width;
+                const y = Math.floor(i / width);
+                let minD = grid[i];
+                if (x > 0) minD = Math.min(minD, grid[i-1] + 1);
+                if (y > 0) minD = Math.min(minD, grid[i-width] + 1);
+                if (x > 0 && y > 0) minD = Math.min(minD, grid[i-width-1] + 1.414);
+                if (x < width-1 && y > 0) minD = Math.min(minD, grid[i-width+1] + 1.414);
+                grid[i] = minD;
             }
         }
-        for (let y = height - 1; y >= 0; y--) {
-            for (let x = width - 1; x >= 0; x--) {
-                const idx = y * width + x;
-                if (grid[idx] > 0) {
-                    let minD = grid[idx];
-                    if (x < width - 1) minD = Math.min(minD, grid[idx+1] + 1);
-                    if (y < height - 1) minD = Math.min(minD, grid[idx+width] + 1);
-                    if (x < width - 1 && y < height - 1) minD = Math.min(minD, grid[idx+width+1] + 1.414);
-                    if (x > 0 && y < height - 1) minD = Math.min(minD, grid[idx+width-1] + 1.414);
-                    grid[idx] = minD;
-                }
+        // Backward
+        for (let i = width*height - 1; i >= 0; i--) {
+            if (grid[i] > 0) {
+                const x = i % width;
+                const y = Math.floor(i / width);
+                let minD = grid[i];
+                if (x < width - 1) minD = Math.min(minD, grid[i+1] + 1);
+                if (y < height - 1) minD = Math.min(minD, grid[i+width] + 1);
+                if (x < width - 1 && y < height - 1) minD = Math.min(minD, grid[i+width+1] + 1.414);
+                if (x > 0 && y < height - 1) minD = Math.min(minD, grid[i+width-1] + 1.414);
+                grid[i] = minD;
             }
         }
 
-        // Draw Stroke
         for (let i = 0; i < width * height; i++) {
             const dist = grid[i];
             if (dist > 0 && dist <= strokeWidth + 0.5) {
                 const pIdx = i * 4;
                 let alpha = 255;
-                if (dist > strokeWidth - 0.5) {
-                    alpha = 255 * (1 - (dist - (strokeWidth - 0.5)));
-                }
+                if (dist > strokeWidth - 0.5) alpha = 255 * (1 - (dist - (strokeWidth - 0.5)));
                 data[pIdx] = sr; data[pIdx+1] = sg; data[pIdx+2] = sb; data[pIdx+3] = alpha;
             }
         }
@@ -717,9 +678,6 @@
             imgFolder.generateAsync({type:"blob"}).then(content => {
                 saveAs(content, "chroma_key_results.zip");
                 els.downloadZipBtn.disabled = false; 
-            }).catch(() => {
-                els.downloadZipBtn.disabled = false; 
-                alert('Error generating ZIP file.');
             });
         }
     }
@@ -727,25 +685,18 @@
     function downloadAllBatch() {
         let downloadedCount = 0;
         els.downloadBatchBtn.disabled = true; 
-
-        const filesToDownload = state.files.filter(f => f.processedBlob).length;
+        const total = state.files.filter(f => f.processedBlob).length;
+        if(total === 0) { els.downloadBatchBtn.disabled = false; return; }
 
         state.files.forEach((file, index) => {
             if (file.processedBlob) {
                 setTimeout(() => {
-                    const filename = 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png";
-                    saveAs(file.processedBlob, filename);
+                    saveAs(file.processedBlob, 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
                     downloadedCount++;
-                    if (downloadedCount === filesToDownload) {
-                         els.downloadBatchBtn.disabled = false;
-                    }
-                }, index * 200); 
+                    if (downloadedCount === total) els.downloadBatchBtn.disabled = false;
+                }, index * 250); 
             }
         });
-
-        if (filesToDownload === 0) {
-             els.downloadBatchBtn.disabled = false;
-        }
     }
 </script>
 </body>
