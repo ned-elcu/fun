@@ -1,591 +1,467 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey & Stroke Tool</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
-    <style>
-        :root {
-            --bg: #1e1e24;
-            --panel: #2b2b36;
-            --text: #e1e1e6;
-            --accent: #4cc9f0;
-            --border: #444;
-            --slider: #4cc9f0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        h1 { margin-bottom: 20px; font-weight: 300; letter-spacing: 1px; }
-
-        /* Layout */
-        .container {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
-        }
-
-        /* Controls Panel */
-        .controls {
-            background: var(--panel);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            height: fit-content;
-            position: sticky;
-            top: 20px;
-        }
-
-        .control-group { margin-bottom: 20px; }
-        .control-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: #aaa; }
-        .control-group span { float: right; color: var(--accent); font-weight: bold; }
-
-        /* Inputs */
-        input[type="range"] {
-            width: 100%;
-            cursor: pointer;
-            accent-color: var(--accent);
-        }
-        
-        input[type="color"] {
-            width: 100%;
-            height: 40px;
-            border: none;
-            cursor: pointer;
-            background: none;
-        }
-
-        /* Dropzone */
-        .dropzone {
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-            margin-bottom: 20px;
-        }
-        .dropzone:hover, .dropzone.dragover {
-            border-color: var(--accent);
-            background: rgba(76, 201, 240, 0.1);
-        }
-        .dropzone p { margin: 0; color: #888; pointer-events: none; }
-
-        /* Results Grid */
-        .results-area {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .batch-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-
-        .btn {
-            background: var(--accent);
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            transition: opacity 0.2s;
-        }
-        .btn:hover { opacity: 0.8; }
-        .btn:disabled { background: #555; cursor: not-allowed; }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-        }
-
-        .image-card {
-            background: var(--panel);
-            border-radius: 6px;
-            overflow: hidden;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        /* Checkboard background for transparency */
-        .img-preview {
-            height: 150px;
-            background-image: 
-                linear-gradient(45deg, #333 25%, transparent 25%), 
-                linear-gradient(-45deg, #333 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #333 75%), 
-                linear-gradient(-45deg, transparent 75%, #333 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
-        }
-
-        .img-preview canvas {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .card-actions {
-            padding: 8px;
-            display: flex;
-            justify-content: space-between;
-            background: #222;
-        }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            color: #aaa;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-        .icon-btn:hover { color: #fff; }
-
-        .processing-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.8rem;
-            display: none;
-        }
-        .processing .processing-overlay { display: flex; }
-
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chroma-key + Outside Stroke (Client-side)</title>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#06b6d4;
+    --ui-bg:#0b1220; --glass: rgba(255,255,255,0.02);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{background:linear-gradient(180deg,#071026 0%, #071421 100%);color:#e6eef6;padding:18px;box-sizing:border-box;}
+  .container{max-width:1100px;margin:0 auto;}
+  header{display:flex;gap:16px;align-items:center;margin-bottom:18px;}
+  h1{font-size:20px;margin:0}
+  p.lead{margin:0;color:var(--muted);font-size:13px}
+  .controls{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0;padding:12px;background:var(--glass);border-radius:10px}
+  label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+  input[type=range]{width:220px}
+  input[type=color]{height:36px;width:56px;border-radius:6px;border:none;padding:0}
+  .dropzone{border:2px dashed rgba(255,255,255,0.06);padding:20px;border-radius:10px;text-align:center;cursor:pointer;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);}
+  .dropzone.dragover{border-color:var(--accent);box-shadow:0 6px 24px rgba(3,105,161,0.12)}
+  .grid{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+  .card{width:160px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:10px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.5);display:flex;flex-direction:column;gap:8px;align-items:center}
+  canvas.preview{background:transparent;border-radius:6px;image-rendering:pixelated;max-width:140px;max-height:140px}
+  .btn{background:var(--accent);color:#052024;padding:8px 10px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center}
+  .meta{font-size:12px;color:var(--muted);text-align:center}
+  .actions{display:flex;gap:6px}
+  .small{font-size:12px;padding:6px 8px;border-radius:8px}
+  footer{margin-top:18px;color:var(--muted);font-size:13px}
+  .top-controls{display:flex;gap:8px;align-items:center}
+  .flex-grow{flex:1}
+  .download-all{margin-left:auto}
+  .note{color:var(--muted);font-size:13px;margin-top:8px}
+</style>
 </head>
 <body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Chroma-key + Photoshop-style Outside Stroke — Client-side</h1>
+        <p class="lead">Auto-detect green/blue background. Batch upload, auto-process, adjustable stroke/tolerance, persistent settings.</p>
+      </div>
+    </header>
 
-    <h1>Auto Chroma & Stroke Tool</h1>
+    <div class="controls" role="region" aria-label="Tool controls">
+      <label>
+        Tolerance <span id="tolVal" style="color:var(--accent);margin-left:8px">60</span>
+        <input id="tolerance" type="range" min="0" max="255" value="60" />
+      </label>
 
-    <div class="container">
-        <div class="controls">
-            <div class="dropzone" id="dropzone">
-                <p>Drag & Drop Images<br>or Click to Browse</p>
-                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
-            </div>
+      <label>
+        Stroke width <span id="strokeVal" style="color:var(--accent);margin-left:8px">10 px</span>
+        <input id="strokeWidth" type="range" min="1" max="40" value="10" />
+      </label>
 
-            <div class="control-group">
-                <label>Chroma Tolerance <span id="tolVal">30</span></label>
-                <input type="range" id="tolerance" min="1" max="150" value="30">
-            </div>
+      <label style="display:flex;align-items:center;gap:8px;">
+        Stroke color
+        <input id="strokeColor" type="color" value="#000000" />
+      </label>
 
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
-
-            <div class="control-group">
-                <label>Stroke Width (px) <span id="strokeVal">10</span></label>
-                <input type="range" id="strokeWidth" min="0" max="50" value="10">
-            </div>
-
-            <div class="control-group">
-                <label>Stroke Color</label>
-                <input type="color" id="strokeColor" value="#000000">
-            </div>
-
-            <div style="margin-top:20px; font-size: 0.8rem; color: #777; line-height: 1.4;">
-                <strong>Note:</strong> Stroke is generated using a Distance Transform algorithm (Mask Dilation) to ensure a solid outer shell, not a shadow.
-            </div>
+      <div style="display:flex;flex-direction:column;justify-content:center">
+        <div class="row">
+          <button id="clearAll" class="btn ghost small">Clear All</button>
+          <button id="downloadZip" class="btn small download-all">Download All (ZIP)</button>
         </div>
-
-        <div class="results-area">
-            <div class="batch-actions">
-                <span id="statusText">0 images loaded</span>
-                <button id="downloadZipBtn" class="btn" disabled>Download All (ZIP)</button>
-            </div>
-            <div class="grid" id="resultsGrid"></div>
-        </div>
+        <div class="note">Settings persist across sessions (localStorage).</div>
+      </div>
     </div>
 
+    <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Drop images here to upload">
+      <strong>Drop images here or click to select</strong>
+      <div style="margin-top:8px;color:var(--muted)">Supports 256×256 and 512×512 icons. Multiple files possible. Files auto-process on upload.</div>
+      <input id="fileInput" type="file" accept="image/*" multiple style="display:none" />
+    </div>
+
+    <div id="grid" class="grid" aria-live="polite" style="margin-top:12px"></div>
+
+    <footer>
+      <div>Algorithm: sample corners to choose green/blue key, pixel-distance thresholding for alpha, mask dilation for outside stroke. Best results with uniform studio green/blue.</div>
+    </footer>
+  </div>
+
 <script>
-    // --- State & DOM Elements ---
-    const state = {
-        files: [], // Stores objects: { id, originalFile, processedBlob, canvasData, name }
-        settings: {
-            tolerance: 30,
-            strokeWidth: 10,
-            strokeColor: '#000000'
+// ---- Utilities & defaults ----
+const LS_KEY = 'chromaStrokeSettings_v1';
+const defaults = {
+  tolerance: 60,
+  strokeWidth: 10,
+  strokeColor: '#000000'
+};
+
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return {...defaults};
+    const parsed = JSON.parse(raw);
+    return {...defaults, ...parsed};
+  }catch(e){ return {...defaults}; }
+}
+function saveSettings(s){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(s)); }catch(e){}
+}
+
+// ---- DOM ----
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const grid = document.getElementById('grid');
+const toleranceEl = document.getElementById('tolerance');
+const tolVal = document.getElementById('tolVal');
+const strokeWidthEl = document.getElementById('strokeWidth');
+const strokeVal = document.getElementById('strokeVal');
+const strokeColorEl = document.getElementById('strokeColor');
+const clearAllBtn = document.getElementById('clearAll');
+const downloadZipBtn = document.getElementById('downloadZip');
+
+let STATE = {
+  items: [] // {file, name, canvas, blob}
+};
+
+// apply saved settings
+const SETTINGS = loadSettings();
+toleranceEl.value = SETTINGS.tolerance;
+tolVal.textContent = SETTINGS.tolerance;
+strokeWidthEl.value = SETTINGS.strokeWidth;
+strokeVal.textContent = `${SETTINGS.strokeWidth} px`;
+strokeColorEl.value = SETTINGS.strokeColor;
+
+// keep settings synced
+[toleranceEl, strokeWidthEl, strokeColorEl].forEach(el=>{
+  el.addEventListener('input', ()=> {
+    SETTINGS.tolerance = Number(toleranceEl.value);
+    SETTINGS.strokeWidth = Number(strokeWidthEl.value);
+    SETTINGS.strokeColor = strokeColorEl.value;
+    tolVal.textContent = SETTINGS.tolerance;
+    strokeVal.textContent = `${SETTINGS.strokeWidth} px`;
+    saveSettings(SETTINGS);
+  });
+});
+
+// ---- dropzone behavior ----
+dropzone.addEventListener('click', ()=> fileInput.click());
+dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files || []);
+  handleFiles(files);
+});
+fileInput.addEventListener('change', ()=> handleFiles(Array.from(fileInput.files)));
+
+// ---- File handling & processing ----
+function handleFiles(files){
+  if(!files.length) return;
+  // filter images
+  const imgs = files.filter(f=> f.type.startsWith('image/'));
+  for(const file of imgs){
+    processFile(file);
+  }
+}
+
+async function processFile(file){
+  const img = await loadImageFromFile(file);
+  // create canvases
+  const width = img.width;
+  const height = img.height;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  // draw original
+  ctx.drawImage(img,0,0,width,height);
+  // process
+  await applyChromaAndStroke(canvas, SETTINGS.tolerance, SETTINGS.strokeWidth, SETTINGS.strokeColor);
+  // create blob for download
+  canvas.toBlob(blob=>{
+    const id = cryptoRandomId();
+    const item = {id, file, name: file.name.replace(/\.[^.]+$/, '') + '.png', canvas, blob};
+    STATE.items.push(item);
+    renderItem(item);
+  }, 'image/png');
+}
+
+// tiny id
+function cryptoRandomId(){ return Math.random().toString(36).slice(2,9); }
+
+// load Image
+function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = (e)=>{ URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+
+// detect key color by sampling corners
+function detectKeyColor(imageData, width, height){
+  // sample 4 corners 8x8 blocks average
+  const sample = (sx, sy, sw, sh) => {
+    let r=0,g=0,b=0,c=0;
+    const data = imageData;
+    for(let y=sy;y<sy+sh;y++){
+      for(let x=sx;x<sx+sw;x++){
+        const i = (y*width + x)*4;
+        r += data[i]; g+=data[i+1]; b+=data[i+2]; c++;
+      }
+    }
+    return {r: r/c, g: g/c, b: b/c};
+  };
+  const size = Math.max(4, Math.floor(Math.min(width,height)/16));
+  const corners = [
+    sample(0,0,size,size),
+    sample(width-size,0,size,size),
+    sample(0,height-size,size,size),
+    sample(width-size,height-size,size,size)
+  ];
+  // average corners
+  let r=0,g=0,b=0;
+  for(const c of corners){ r+=c.r; g+=c.g; b+=c.b; }
+  r/=4; g/=4; b/=4;
+  // decide green vs blue
+  if(g > b + 12 && g > r + 12) return {r:0,g:255,b:0, label:'green'};
+  if(b > g + 12 && b > r + 12) return {r:0,g:0,b:255, label:'blue'};
+  // fallback: pick the dominant channel of averaged corners
+  if(g >= b && g >= r) return {r:0,g:255,b:0, label:'green'};
+  if(b >= g && b >= r) return {r:0,g:0,b:255, label:'blue'};
+  return {r:0,g:255,b:0, label:'green'}; // default green
+}
+
+// core chroma + stroke
+async function applyChromaAndStroke(canvas, tolerance, strokeWidth, strokeColor){
+  const w = canvas.width, h = canvas.height;
+  const ctx = canvas.getContext('2d');
+  let imgData = ctx.getImageData(0,0,w,h);
+  const data = imgData.data;
+  // detect key color from current pixels
+  const key = detectKeyColor(data, w, h);
+  // build subject alpha mask
+  const subjectMask = new Uint8ClampedArray(w*h); // 1 = subject
+  // compute per-pixel transparency based on distance to key color
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i = (y*w + x)*4;
+      const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+      // color distance (euclidean)
+      const dr = r - key.r, dg = g - key.g, db = b - key.b;
+      const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+      if(dist <= tolerance){
+        // background pixel: set alpha 0
+        data[i+3] = 0;
+        subjectMask[y*w + x] = 0;
+      } else {
+        subjectMask[y*w + x] = 1;
+      }
+    }
+  }
+
+  // OPTIONAL: simple despill - reduce green/blue spill around subject edges
+  // For each subject pixel near removed pixels, slightly reduce key channel
+  // This improves edges for chroma spills.
+  const despillRadius = 2;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const idx = y*w + x;
+      if(subjectMask[idx] === 1){
+        // check neighbor if any neighbor was removed (background) within small radius
+        let nearBg = false;
+        for(let ny=Math.max(0,y-despillRadius); ny<=Math.min(h-1,y+despillRadius) && !nearBg; ny++){
+          for(let nx=Math.max(0,x-despillRadius); nx<=Math.min(w-1,x+despillRadius); nx++){
+            if(subjectMask[ny*w + nx] === 0){ nearBg = true; break; }
+          }
         }
-    };
-
-    const els = {
-        dropzone: document.getElementById('dropzone'),
-        fileInput: document.getElementById('fileInput'),
-        tolerance: document.getElementById('tolerance'),
-        strokeWidth: document.getElementById('strokeWidth'),
-        strokeColor: document.getElementById('strokeColor'),
-        tolVal: document.getElementById('tolVal'),
-        strokeVal: document.getElementById('strokeVal'),
-        resultsGrid: document.getElementById('resultsGrid'),
-        downloadZipBtn: document.getElementById('downloadZipBtn'),
-        statusText: document.getElementById('statusText')
-    };
-
-    let processTimeout; // For debouncing slider inputs
-
-    // --- Initialization ---
-    window.addEventListener('DOMContentLoaded', () => {
-        loadSettings();
-        bindEvents();
-    });
-
-    function loadSettings() {
-        const saved = localStorage.getItem('chromaToolSettings');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            state.settings = { ...state.settings, ...parsed };
-            
-            els.tolerance.value = state.settings.tolerance;
-            els.strokeWidth.value = state.settings.strokeWidth;
-            els.strokeColor.value = state.settings.strokeColor;
-            
-            els.tolVal.innerText = state.settings.tolerance;
-            els.strokeVal.innerText = state.settings.strokeWidth;
+        if(nearBg){
+          const i = idx*4;
+          if(key.label === 'green'){
+            // reduce green slightly
+            data[i+1] = Math.round(data[i+1] * 0.85);
+          } else {
+            data[i+2] = Math.round(data[i+2] * 0.85);
+          }
         }
+      }
     }
+  }
 
-    function saveSettings() {
-        localStorage.setItem('chromaToolSettings', JSON.stringify(state.settings));
+  // Put alpha-modified image temporarily
+  ctx.putImageData(imgData,0,0);
+
+  // Create stroke mask by dilating subject mask
+  const strokeMask = new Uint8ClampedArray(w*h); // 1 = stroke
+  const radius = Math.max(1, Math.round(strokeWidth));
+  // For speed, precompute offsets within radius
+  const offsets = [];
+  for(let dy=-radius; dy<=radius; dy++){
+    for(let dx=-radius; dx<=radius; dx++){
+      if(dx*dx + dy*dy <= radius*radius){
+        offsets.push([dx,dy]);
+      }
     }
-
-    function bindEvents() {
-        // Drag & Drop
-        els.dropzone.addEventListener('click', () => els.fileInput.click());
-        els.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropzone.classList.add('dragover'); });
-        els.dropzone.addEventListener('dragleave', () => els.dropzone.classList.remove('dragover'));
-        els.dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            els.dropzone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-        els.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
-        // Controls
-        const updateHandler = () => {
-            updateStateFromDOM();
-            saveSettings();
-            triggerBatchProcess(); // Re-process all currently loaded images
-        };
-
-        els.tolerance.addEventListener('input', () => { els.tolVal.innerText = els.tolerance.value; updateHandler(); });
-        els.strokeWidth.addEventListener('input', () => { els.strokeVal.innerText = els.strokeWidth.value; updateHandler(); });
-        els.strokeColor.addEventListener('input', updateHandler);
-
-        // Downloads
-        els.downloadZipBtn.addEventListener('click', downloadAllZip);
+  }
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i = y*w + x;
+      if(subjectMask[i] === 0){
+        // if any neighbor within radius is subject, mark as stroke
+        let hit = false;
+        for(const [dx,dy] of offsets){
+          const nx = x + dx, ny = y + dy;
+          if(nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          if(subjectMask[ny*w + nx] === 1){ hit = true; break; }
+        }
+        if(hit) strokeMask[i] = 1;
+      }
     }
+  }
 
-    function updateStateFromDOM() {
-        state.settings.tolerance = parseInt(els.tolerance.value);
-        state.settings.strokeWidth = parseInt(els.strokeWidth.value);
-        state.settings.strokeColor = els.strokeColor.value;
+  // Render stroke onto canvas: draw stroke color for strokeMask, then draw subject on top
+  // We'll store current image as subjectImage to draw later
+  const subjectCanvas = document.createElement('canvas');
+  subjectCanvas.width = w; subjectCanvas.height = h;
+  const sctx = subjectCanvas.getContext('2d');
+  // Put the subject image (with transparent background) into subjectCanvas
+  sctx.putImageData(imgData,0,0);
+
+  // Now clear original and draw stroke
+  ctx.clearRect(0,0,w,h);
+  // Draw stroke pixel-by-pixel
+  const strokeImg = ctx.createImageData(w,h);
+  const scData = strokeImg.data;
+  const strokeRGB = hexToRgb(strokeColor);
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i = y*w + x;
+      if(strokeMask[i]){
+        const j = i*4;
+        scData[j] = strokeRGB.r;
+        scData[j+1] = strokeRGB.g;
+        scData[j+2] = strokeRGB.b;
+        scData[j+3] = 255;
+      } else {
+        const j = i*4;
+        scData[j] = 0; scData[j+1] = 0; scData[j+2] = 0; scData[j+3] = 0;
+      }
     }
+  }
+  ctx.putImageData(strokeImg,0,0);
+  // Finally draw subject on top
+  ctx.drawImage(subjectCanvas,0,0);
+}
 
-    function handleFiles(fileList) {
-        Array.from(fileList).forEach(file => {
-            if (!file.type.startsWith('image/')) return;
+// helper hex->rgb
+function hexToRgb(hex){
+  const h = hex.replace('#','');
+  const bigint = parseInt(h,16);
+  if(h.length === 6){
+    return {r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255};
+  } else if(h.length === 3){
+    return {r: parseInt(h[0]+h[0],16), g: parseInt(h[1]+h[1],16), b: parseInt(h[2]+h[2],16)};
+  }
+  return {r:0,g:0,b:0};
+}
 
-            const id = Date.now() + Math.random().toString(36).substr(2, 9);
-            
-            // Create UI Placeholder
-            const card = createResultCard(id, file.name);
-            els.resultsGrid.appendChild(card);
+// ---- Render UI items ----
+function renderItem(item){
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.id = 'item-' + item.id;
 
-            const fileData = {
-                id: id,
-                originalFile: file,
-                processedBlob: null,
-                element: card
-            };
+  const canvas = document.createElement('canvas');
+  canvas.className = 'preview';
+  canvas.width = Math.min(256, item.canvas.width);
+  canvas.height = Math.min(256, item.canvas.height);
+  // draw scaled preview with preserving transparency
+  const pctx = canvas.getContext('2d');
+  pctx.imageSmoothingEnabled = true;
+  pctx.clearRect(0,0,canvas.width,canvas.height);
+  pctx.drawImage(item.canvas, 0, 0, canvas.width, canvas.height);
 
-            state.files.push(fileData);
-            
-            // Initial Process
-            processImage(fileData);
-        });
-        updateStatus();
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = item.name;
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'btn small';
+  dlBtn.textContent = 'Download PNG';
+  dlBtn.addEventListener('click', ()=> {
+    const url = URL.createObjectURL(item.blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = item.name;
+    document.body.appendChild(a); a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'btn ghost small';
+  removeBtn.textContent = 'Remove';
+  removeBtn.addEventListener('click', ()=>{
+    // remove from state and UI
+    STATE.items = STATE.items.filter(i => i.id !== item.id);
+    el.remove();
+  });
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(removeBtn);
+
+  el.appendChild(canvas);
+  el.appendChild(meta);
+  el.appendChild(actions);
+  grid.appendChild(el);
+}
+
+// ---- Clear all ----
+clearAllBtn.addEventListener('click', ()=>{
+  STATE.items = [];
+  grid.innerHTML = '';
+});
+
+// ---- Zip download (JSZip) ----
+downloadZipBtn.addEventListener('click', async ()=>{
+  if(STATE.items.length === 0){ alert('No processed items to download.'); return; }
+  // load JSZip dynamically
+  if(typeof JSZip === 'undefined'){
+    await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+  }
+  const zip = new JSZip();
+  const folder = zip.folder('chroma_stroke_export');
+  // add each blob
+  for(const item of STATE.items){
+    // if blob already present, use it; if not, create from canvas
+    if(item.blob){
+      folder.file(item.name, item.blob);
+    } else {
+      const blob = await new Promise(res => item.canvas.toBlob(res, 'image/png'));
+      folder.file(item.name, blob);
     }
+  }
+  const content = await zip.generateAsync({type:'blob'});
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'chroma_stroke_export.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
 
-    function updateStatus() {
-        els.statusText.innerText = `${state.files.length} image(s)`;
-        els.downloadZipBtn.disabled = state.files.length === 0;
-    }
+// dynamic script loader
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
 
-    // --- Core Logic: Processing ---
-
-    function triggerBatchProcess() {
-        clearTimeout(processTimeout);
-        processTimeout = setTimeout(() => {
-            state.files.forEach(fileData => {
-                processImage(fileData);
-            });
-        }, 300); // 300ms debounce to prevent freezing while dragging slider
-    }
-
-    function processImage(fileData) {
-        const card = fileData.element;
-        card.classList.add('processing');
-
-        const img = new Image();
-        img.onload = () => {
-            // Create offscreen canvas
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-
-            // 1. Draw Original
-            ctx.drawImage(img, 0, 0);
-            
-            // 2. Chroma Key Removal
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            const width = canvas.width;
-            const height = canvas.height;
-
-            // Detect background color (Green vs Blue)
-            // Sample corners to determine dominant background
-            const corners = [0, width-1, (height-1)*width, (height-1)*width + width-1];
-            let gScore = 0, bScore = 0;
-            
-            corners.forEach(idx => {
-                const r = data[idx*4];
-                const g = data[idx*4+1];
-                const b = data[idx*4+2];
-                if (g > r && g > b) gScore++;
-                if (b > r && b > g) bScore++;
-            });
-
-            const isGreen = gScore >= bScore; // Default to green if unsure
-            const tol = state.settings.tolerance;
-
-            // Create binary mask for stroke generation later: 1 = Subject, 0 = Transparent
-            // We use Int32Array for Distance Transform (infinity initialization)
-            const grid = new Int32Array(width * height); 
-            const INF = width * height; // Sufficiently large number
-
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i+1];
-                const b = data[i+2];
-                
-                let isBackground = false;
-
-                if (isGreen) {
-                    // Basic Green Screen Logic: G dominates R and B significantly
-                    if (g > r + tol && g > b + tol) isBackground = true;
-                } else {
-                    // Blue Screen Logic
-                    if (b > r + tol && b > g + tol) isBackground = true;
-                }
-
-                if (isBackground) {
-                    data[i+3] = 0; // Set alpha to 0
-                    grid[i/4] = 0; // Distance is 0 (it's the background)
-                } else {
-                    grid[i/4] = INF; // It's the subject, init with INF distance
-                }
-            }
-            
-            // 3. Stroke Generation (Distance Transform)
-            // Only perform if stroke width > 0
-            if (state.settings.strokeWidth > 0) {
-                // Parse Hex Color
-                const hex = state.settings.strokeColor;
-                const sr = parseInt(hex.substr(1,2), 16);
-                const sg = parseInt(hex.substr(3,2), 16);
-                const sb = parseInt(hex.substr(5,2), 16);
-
-                // Distance Transform (Meijster algorithm simplified - Manhattan distance is faster and "boxy" enough for strokes, 
-                // but let's do Euclidean approximation for smoother corners)
-                
-                // Pass 1: Top-Left to Bottom-Right
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        const idx = y * width + x;
-                        if (grid[idx] === INF) {
-                            // Check left and up
-                            if (x > 0) grid[idx] = Math.min(grid[idx], grid[idx-1] + 1);
-                            if (y > 0) grid[idx] = Math.min(grid[idx], grid[idx-width] + 1);
-                        }
-                    }
-                }
-
-                // Pass 2: Bottom-Right to Top-Left
-                for (let y = height - 1; y >= 0; y--) {
-                    for (let x = width - 1; x >= 0; x--) {
-                        const idx = y * width + x;
-                        // Check right and down
-                        if (x < width - 1) grid[idx] = Math.min(grid[idx], grid[idx+1] + 1);
-                        if (y < height - 1) grid[idx] = Math.min(grid[idx], grid[idx+width] + 1);
-                    }
-                }
-
-                // Apply Stroke
-                // The grid now contains distance to the NEAREST BACKGROUND pixel.
-                // Actually, standard DT calculates distance to nearest 0. 
-                // Here: 0 is BG, INF is Subject.
-                // So grid values inside the subject represent "Distance to edge". 
-                // This is NOT what we want for OUTSIDE stroke.
-                
-                // Correct Logic for Outside Stroke:
-                // We need distance from Subject (1) to Background (0).
-                // Invert logic: Subject = 0, Background = INF.
-                
-                // Let's redo the grid init correctly for OUTSIDE stroke.
-                for (let i = 0; i < width*height; i++) {
-                     // If original pixel was opaque (subject), distance is 0.
-                     // If transparent (bg), distance is INF.
-                     const alpha = data[i*4 + 3];
-                     grid[i] = (alpha > 0) ? 0 : INF;
-                }
-
-                // Run DT again (Manhattan)
-                // Pass 1
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        const idx = y * width + x;
-                        if (grid[idx] > 0) {
-                            if (x > 0) grid[idx] = Math.min(grid[idx], grid[idx-1] + 1);
-                            if (y > 0) grid[idx] = Math.min(grid[idx], grid[idx-width] + 1);
-                        }
-                    }
-                }
-                // Pass 2
-                for (let y = height - 1; y >= 0; y--) {
-                    for (let x = width - 1; x >= 0; x--) {
-                        const idx = y * width + x;
-                        if (x < width - 1) grid[idx] = Math.min(grid[idx], grid[idx+1] + 1);
-                        if (y < height - 1) grid[idx] = Math.min(grid[idx], grid[idx+width] + 1);
-                    }
-                }
-
-                // Now, grid[i] is distance from nearest Subject pixel.
-                // If 0 < distance <= strokeWidth, color it.
-                const sw = state.settings.strokeWidth;
-                
-                for (let i = 0; i < width*height; i++) {
-                    const dist = grid[i];
-                    if (dist > 0 && dist <= sw) {
-                        // It's the stroke area
-                        // Only paint if it's currently transparent (don't overwrite subject, though dist>0 implies it's outside)
-                        const pIdx = i * 4;
-                        
-                        // Anti-aliasing trick for the outer edge of the stroke
-                        let alpha = 255;
-                        if (dist > sw - 1) {
-                            alpha = 255 * (sw - dist); // Fade out last pixel
-                        }
-                        
-                        data[pIdx] = sr;
-                        data[pIdx+1] = sg;
-                        data[pIdx+2] = sb;
-                        data[pIdx+3] = alpha; // Full alpha
-                    }
-                }
-            }
-
-            // Put data back
-            ctx.putImageData(imageData, 0, 0);
-
-            // Update UI
-            canvas.toBlob((blob) => {
-                fileData.processedBlob = blob;
-                const url = URL.createObjectURL(blob);
-                
-                const prevContainer = card.querySelector('.img-preview');
-                prevContainer.innerHTML = '';
-                
-                // We append the canvas directly or an image. Canvas is better for memory if we don't need the URL immediately,
-                // but we need URL for download. Let's use Image.
-                const resImg = new Image();
-                resImg.src = url;
-                prevContainer.appendChild(resImg);
-
-                // Setup download button for this specific card
-                const dlBtn = card.querySelector('.dl-btn');
-                dlBtn.onclick = () => {
-                    saveAs(blob, 'processed_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
-                };
-
-                card.classList.remove('processing');
-            }, 'image/png');
-        };
-        img.src = URL.createObjectURL(fileData.originalFile);
-    }
-
-    // --- DOM Generation ---
-
-    function createResultCard(id, filename) {
-        const div = document.createElement('div');
-        div.className = 'image-card';
-        div.id = `card-${id}`;
-        div.innerHTML = `
-            <div class="img-preview">
-                <div style="color: #555">Waiting...</div>
-            </div>
-            <div class="processing-overlay">Processing...</div>
-            <div class="card-actions">
-                <div style="font-size: 0.8rem; color: #fff; align-self:center; max-width: 100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                    ${filename}
-                </div>
-                <button class="icon-btn dl-btn" title="Download">⬇</button>
-            </div>
-        `;
-        return div;
-    }
-
-    // --- Batch Download ---
-
-    function downloadAllZip() {
-        const zip = new JSZip();
-        const imgFolder = zip.folder("processed_images");
-        
-        let processedCount = 0;
-        const total = state.files.length;
-
-        state.files.forEach(file => {
-            if (file.processedBlob) {
-                const name = 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png";
-                imgFolder.file(name, file.processedBlob);
-                processedCount++;
-            }
-        });
-
-        if (processedCount === 0) return;
-
-        imgFolder.generateAsync({type:"blob"}).then(function(content) {
-            saveAs(content, "chroma_key_results.zip");
-        });
-    }
+// ---- Initialization helper: small sample image for quick test (optional) ----
+// none; user will upload
 
 </script>
 </body>
