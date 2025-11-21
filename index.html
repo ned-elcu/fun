@@ -94,6 +94,11 @@
             align-items: center;
         }
 
+        .batch-buttons {
+            display: flex;
+            gap: 10px; /* Space between the two new buttons */
+        }
+
         .btn {
             background: var(--accent);
             color: #000;
@@ -240,7 +245,10 @@
         <div class="results-area">
             <div class="batch-actions">
                 <span id="statusText">0 images loaded</span>
-                <button id="downloadZipBtn" class="btn" disabled>Download All (ZIP)</button>
+                <div class="batch-buttons">
+                    <button id="downloadBatchBtn" class="btn" disabled>Download All (Files)</button>
+                    <button id="downloadZipBtn" class="btn" disabled>Download All (ZIP)</button>
+                </div>
             </div>
             <div class="grid" id="resultsGrid"></div>
         </div>
@@ -269,6 +277,7 @@
         strokeVal: document.getElementById('strokeVal'),
         resultsGrid: document.getElementById('resultsGrid'),
         downloadZipBtn: document.getElementById('downloadZipBtn'),
+        downloadBatchBtn: document.getElementById('downloadBatchBtn'), // New button element
         statusText: document.getElementById('statusText')
     };
 
@@ -328,6 +337,7 @@
         els.exportSize.addEventListener('change', updateHandler);
 
         els.downloadZipBtn.addEventListener('click', downloadAllZip);
+        els.downloadBatchBtn.addEventListener('click', downloadAllBatch); // Bind new function
     }
 
     function handleFiles(fileList) {
@@ -346,7 +356,9 @@
 
     function updateStatus() {
         els.statusText.innerText = `${state.files.length} image(s)`;
-        els.downloadZipBtn.disabled = state.files.length === 0;
+        const isDisabled = state.files.length === 0;
+        els.downloadZipBtn.disabled = isDisabled;
+        els.downloadBatchBtn.disabled = isDisabled; // Update status for new button
     }
 
     function triggerBatchProcess() {
@@ -600,7 +612,43 @@
             }
         });
         if (count > 0) {
-            imgFolder.generateAsync({type:"blob"}).then(content => saveAs(content, "chroma_key_results.zip"));
+            // Disable the button to prevent multiple clicks while processing the ZIP
+            els.downloadZipBtn.disabled = true; 
+            imgFolder.generateAsync({type:"blob"}).then(content => {
+                saveAs(content, "chroma_key_results.zip");
+                els.downloadZipBtn.disabled = false; // Re-enable
+            }).catch(() => {
+                els.downloadZipBtn.disabled = false; // Re-enable on error
+                alert('Error generating ZIP file.');
+            });
+        }
+    }
+
+    function downloadAllBatch() {
+        // This function triggers individual downloads sequentially or near-simultaneously.
+        // Modern browsers handle sequential downloads gracefully, but may require user permission 
+        // for multiple files.
+        let downloadedCount = 0;
+        els.downloadBatchBtn.disabled = true; // Disable the button temporarily
+
+        state.files.forEach((file, index) => {
+            if (file.processedBlob) {
+                // Introduce a slight delay between downloads to prevent potential browser issues
+                setTimeout(() => {
+                    const filename = 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png";
+                    saveAs(file.processedBlob, filename);
+                    downloadedCount++;
+                    // Re-enable the button only after all files have been triggered for download
+                    if (downloadedCount === state.files.filter(f => f.processedBlob).length) {
+                         els.downloadBatchBtn.disabled = false;
+                    }
+                }, index * 200); // 200ms delay per file
+            }
+        });
+
+        // If no files are processed, re-enable immediately
+        if (state.files.filter(f => f.processedBlob).length === 0) {
+             els.downloadBatchBtn.disabled = false;
         }
     }
 </script>
