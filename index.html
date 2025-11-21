@@ -1,16 +1,3 @@
-Yes, that makes perfect sense\! You're looking for a way to **normalize the size** of the isolated foreground object (the frog or duck) so they occupy a similar proportion of the final exported canvas, which is crucial for uniform icon generation.
-
-The current resizing only scales the *entire processed canvas* to a fixed resolution (e.g., 512x512). To achieve your goal, you need an extra step: **Content-Aware Scaling and Centering** before the final export.
-
-Since you're using JavaScript and HTML canvas, the most effective way to implement this "Object Normalization" is to first find the **bounding box** of the non-transparent pixels (your object) and then scale the entire image data so this bounding box fits snugly inside the final output size, centered.
-
-Here is the updated, ready-to-use HTML code with a new **"Normalize Object Size"** checkbox that implements this logic.
-
-## 🖼️ Updated Chroma Key Tool (v4.1)
-
-I've added a new control, **"Normalize Object Size"**, which ensures the object's tightest bounding box is scaled to fit the final export size (e.g., 512x512) while preserving the aspect ratio.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -763,4 +750,3 @@ I've added a new control, **"Normalize Object Size"**, which ensures the object'
 </script>
 </body>
 </html>
-```
