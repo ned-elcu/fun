@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey & Stroke Tool v2</title>
+    <title>ChromaKey & Stroke Tool v3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -14,6 +14,7 @@
             --text: #e1e1e6;
             --accent: #4cc9f0;
             --border: #444;
+            --input-bg: #1a1a20;
         }
 
         body {
@@ -55,6 +56,18 @@
 
         input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); }
         input[type="color"] { width: 100%; height: 40px; border: none; cursor: pointer; background: none; }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        select:focus { outline: 2px solid var(--accent); border-color: transparent; }
 
         .dropzone {
             border: 2px dashed var(--border);
@@ -131,6 +144,7 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+            image-rendering: -webkit-optimize-contrast; /* Try to keep sharp for pixel art */
         }
 
         .card-actions {
@@ -165,13 +179,24 @@
 </head>
 <body>
 
-    <h1>Chroma Tool <small style="font-size:0.5em; color:#666">v2 (Despeckle)</small></h1>
+    <h1>Chroma Tool <small style="font-size:0.5em; color:#666">v3 (Resize)</small></h1>
 
     <div class="container">
         <div class="controls">
             <div class="dropzone" id="dropzone">
                 <p>Drag & Drop Images<br>or Click to Browse</p>
                 <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+            </div>
+
+            <div class="control-group">
+                <label>Export Size</label>
+                <select id="exportSize">
+                    <option value="original">Original Resolution</option>
+                    <option value="512">512 x 512</option>
+                    <option value="256">256 x 256</option>
+                    <option value="128">128 x 128</option>
+                    <option value="64">64 x 64</option>
+                </select>
             </div>
 
             <div class="control-group">
@@ -192,7 +217,7 @@
             </div>
             
             <div style="margin-top:20px; font-size: 0.8rem; color: #777; line-height: 1.4;">
-                <strong>Clean Up:</strong> The tool automatically removes small disconnected artifacts (like corner specks) to prevent unwanted strokes.
+                <strong>Auto-Fix:</strong> "Specks" in corners are automatically removed. Images are processed at full quality before resizing.
             </div>
         </div>
 
@@ -206,14 +231,21 @@
     </div>
 
 <script>
+    // --- State ---
     const state = {
         files: [], 
-        settings: { tolerance: 30, strokeWidth: 10, strokeColor: '#000000' }
+        settings: { 
+            tolerance: 30, 
+            strokeWidth: 10, 
+            strokeColor: '#000000',
+            exportSize: 'original' 
+        }
     };
 
     const els = {
         dropzone: document.getElementById('dropzone'),
         fileInput: document.getElementById('fileInput'),
+        exportSize: document.getElementById('exportSize'),
         tolerance: document.getElementById('tolerance'),
         strokeWidth: document.getElementById('strokeWidth'),
         strokeColor: document.getElementById('strokeColor'),
@@ -226,25 +258,28 @@
 
     let processTimeout;
 
+    // --- Init ---
     window.addEventListener('DOMContentLoaded', () => {
         loadSettings();
         bindEvents();
     });
 
     function loadSettings() {
-        const saved = localStorage.getItem('chromaToolSettings_v2');
+        const saved = localStorage.getItem('chromaToolSettings_v3');
         if (saved) {
             state.settings = { ...state.settings, ...JSON.parse(saved) };
             els.tolerance.value = state.settings.tolerance;
             els.strokeWidth.value = state.settings.strokeWidth;
             els.strokeColor.value = state.settings.strokeColor;
+            els.exportSize.value = state.settings.exportSize;
+            
             els.tolVal.innerText = state.settings.tolerance;
             els.strokeVal.innerText = state.settings.strokeWidth;
         }
     }
 
     function saveSettings() {
-        localStorage.setItem('chromaToolSettings_v2', JSON.stringify(state.settings));
+        localStorage.setItem('chromaToolSettings_v3', JSON.stringify(state.settings));
     }
 
     function bindEvents() {
@@ -262,8 +297,11 @@
             state.settings.tolerance = parseInt(els.tolerance.value);
             state.settings.strokeWidth = parseInt(els.strokeWidth.value);
             state.settings.strokeColor = els.strokeColor.value;
+            state.settings.exportSize = els.exportSize.value;
+            
             els.tolVal.innerText = state.settings.tolerance;
             els.strokeVal.innerText = state.settings.strokeWidth;
+            
             saveSettings();
             triggerBatchProcess();
         };
@@ -271,6 +309,8 @@
         els.tolerance.addEventListener('input', updateHandler);
         els.strokeWidth.addEventListener('input', updateHandler);
         els.strokeColor.addEventListener('input', updateHandler);
+        els.exportSize.addEventListener('change', updateHandler);
+
         els.downloadZipBtn.addEventListener('click', downloadAllZip);
     }
 
@@ -300,32 +340,33 @@
         }, 300);
     }
 
+    // --- Core Processing ---
+
     function processImage(fileData) {
         const card = fileData.element;
         card.classList.add('processing');
 
         const img = new Image();
         img.onload = () => {
+            // 1. WORK AT FULL RESOLUTION
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
 
-            // 1. Draw Original
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
             const width = canvas.width;
             const height = canvas.height;
 
-            // 2. Auto-Detect Background (Robust)
-            // Sample multiple points along edges to guess color
+            // 2. Detect Background
             let gScore = 0, bScore = 0;
-            const samples = [0, width-1, (height-1)*width, width*height-1, width/2, width*height/2]; 
-            // (corners + middles)
+            // Sample borders and center
+            const samples = [0, width-1, (height-1)*width, width*height-1, width/2, width*height/2];
             
-            for (let i = 0; i < data.length; i+=4) {
-                // Simple sampling stride to save perf, check every 100th pixel on border
+            // Sparse Sampling for detection
+            for (let i = 0; i < data.length; i+=16) { 
                 if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
                     const r = data[i], g = data[i+1], b = data[i+2];
                     if (g > r && g > b) gScore++;
@@ -335,7 +376,7 @@
             const isGreen = gScore >= bScore;
             const tol = state.settings.tolerance;
 
-            // 3. Chroma Key Removal
+            // 3. Chroma Key
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i], g = data[i+1], b = data[i+2];
                 let isBackground = false;
@@ -347,18 +388,41 @@
                 if (isBackground) data[i+3] = 0; 
             }
 
-            // 4. ISLAND REMOVAL (Despeckle)
-            // Removes small disconnected blobs (noise) < 100 pixels
+            // 4. De-Speckle (Remove Islands < 100px)
             removeIslands(data, width, height, 100);
 
-            // 5. Stroke Generation (Euclidean Distance Transform)
+            // 5. Stroke (Euclidean)
             if (state.settings.strokeWidth > 0) {
                 applyStroke(data, width, height, state.settings.strokeWidth, state.settings.strokeColor);
             }
 
             ctx.putImageData(imageData, 0, 0);
 
-            canvas.toBlob((blob) => {
+            // 6. HANDLE RESIZING
+            let outputCanvas = canvas;
+            const exportSetting = state.settings.exportSize;
+            
+            if (exportSetting !== 'original') {
+                const targetSize = parseInt(exportSetting);
+                // Only resize if input dimensions differ substantially (optional check, but good for consistency)
+                if (targetSize > 0) {
+                    const scaledCanvas = document.createElement('canvas');
+                    scaledCanvas.width = targetSize;
+                    scaledCanvas.height = targetSize;
+                    const sCtx = scaledCanvas.getContext('2d');
+                    
+                    // High Quality Scaling settings
+                    sCtx.imageSmoothingEnabled = true;
+                    sCtx.imageSmoothingQuality = 'high';
+                    
+                    // Draw processed canvas onto scaled canvas
+                    sCtx.drawImage(canvas, 0, 0, targetSize, targetSize);
+                    outputCanvas = scaledCanvas;
+                }
+            }
+
+            // 7. Finalize
+            outputCanvas.toBlob((blob) => {
                 fileData.processedBlob = blob;
                 const url = URL.createObjectURL(blob);
                 const prevContainer = card.querySelector('.img-preview');
@@ -376,89 +440,58 @@
         img.src = URL.createObjectURL(fileData.originalFile);
     }
 
-    // --- Helper: Remove Islands (Noise) ---
     function removeIslands(data, width, height, minSize) {
-        const visited = new Uint8Array(width * height); // 0 = unvisited, 1 = visited
+        const visited = new Uint8Array(width * height);
         const stack = [];
-        
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const idx = y * width + x;
-                
-                // If opaque and not visited, it's a new component
                 if (data[idx * 4 + 3] > 0 && visited[idx] === 0) {
-                    
-                    // Start Flood Fill (DFS) to find size
                     stack.push(idx);
                     visited[idx] = 1;
-                    
-                    const componentIndices = [idx]; // Store indices to potentially clear later
+                    const component = [idx];
                     
                     while(stack.length > 0) {
                         const curr = stack.pop();
                         const cx = curr % width;
                         const cy = Math.floor(curr / width);
-
-                        // Check 4 neighbors
                         const neighbors = [
-                            { nx: cx + 1, ny: cy },
-                            { nx: cx - 1, ny: cy },
-                            { nx: cx, ny: cy + 1 },
-                            { nx: cx, ny: cy - 1 }
+                            { nx: cx + 1, ny: cy }, { nx: cx - 1, ny: cy },
+                            { nx: cx, ny: cy + 1 }, { nx: cx, ny: cy - 1 }
                         ];
-
                         for (const n of neighbors) {
                             if (n.nx >= 0 && n.nx < width && n.ny >= 0 && n.ny < height) {
                                 const nIdx = n.ny * width + n.nx;
                                 if (visited[nIdx] === 0 && data[nIdx * 4 + 3] > 0) {
                                     visited[nIdx] = 1;
                                     stack.push(nIdx);
-                                    componentIndices.push(nIdx);
+                                    component.push(nIdx);
                                 }
                             }
                         }
                     }
-
-                    // If component is too small, erase it
-                    if (componentIndices.length < minSize) {
-                        for (const i of componentIndices) {
-                            data[i * 4 + 3] = 0; // Set Alpha to 0
-                        }
+                    if (component.length < minSize) {
+                        for (const i of component) data[i * 4 + 3] = 0;
                     }
                 }
             }
         }
     }
 
-    // --- Helper: Euclidean Distance Transform & Stroke ---
     function applyStroke(data, width, height, strokeWidth, hexColor) {
-        // Initialize Distance Grid
-        // We want distance from SUBJECT.
-        // Subject pixels = 0 distance. Background = Infinity.
         const INF = 1e9;
         const grid = new Float32Array(width * height);
-        
-        // Setup Hex Color
         const sr = parseInt(hexColor.substr(1,2), 16);
         const sg = parseInt(hexColor.substr(3,2), 16);
         const sb = parseInt(hexColor.substr(5,2), 16);
 
-        for (let i = 0; i < width * height; i++) {
-            grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
-        }
+        for (let i = 0; i < width * height; i++) grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
 
-        // EDT (Euclidean Distance Transform) - 8SSEDT approximation (Linear time)
-        // Pass 1: Top-Left -> Bottom-Right
+        // Euclidean Approx (8SSEDT)
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const idx = y * width + x;
                 if (grid[idx] > 0) {
-                    // simplified Euclidean approximation: 
-                    // Just using slightly higher cost for diagonals (1.414) ~ 1.4
-                    // Actually for pure stroke, Manhattan (1) is sometimes preferred for "blocky" pixel art styles,
-                    // but let's do a quasi-Euclidean using Chamfer (3-4 weights) or just min neighbors + 1 for speed
-                    // Let's stick to robust neighbor propagation for "Outside" stroke
-                    
                     let minD = grid[idx];
                     if (x > 0) minD = Math.min(minD, grid[idx-1] + 1);
                     if (y > 0) minD = Math.min(minD, grid[idx-width] + 1);
@@ -468,8 +501,6 @@
                 }
             }
         }
-
-        // Pass 2: Bottom-Right -> Top-Left
         for (let y = height - 1; y >= 0; y--) {
             for (let x = width - 1; x >= 0; x--) {
                 const idx = y * width + x;
@@ -484,27 +515,17 @@
             }
         }
 
-        // Render Stroke
+        // Draw Stroke
         for (let i = 0; i < width * height; i++) {
             const dist = grid[i];
-            if (dist > 0 && dist <= strokeWidth + 0.5) { // +0.5 for anti-aliasing smoothing
+            if (dist > 0 && dist <= strokeWidth + 0.5) {
                 const pIdx = i * 4;
                 let alpha = 255;
-                
-                // Simple Anti-aliasing at the edge
                 if (dist > strokeWidth - 0.5) {
                     alpha = 255 * (1 - (dist - (strokeWidth - 0.5)));
-                    alpha = Math.max(0, Math.min(255, alpha));
                 }
-
-                // Composite: If pixel is currently transparent, just set it.
-                // If pixel has some existing alpha (unlikely due to binary mask, but possible), mix.
-                // Since grid[i]>0 means it was background, we just overwrite.
-                
-                data[pIdx] = sr;
-                data[pIdx+1] = sg;
-                data[pIdx+2] = sb;
-                data[pIdx+3] = alpha;
+                // Overwrite transparent pixels with stroke
+                data[pIdx] = sr; data[pIdx+1] = sg; data[pIdx+2] = sb; data[pIdx+3] = alpha;
             }
         }
     }
