@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey & Stroke Tool v3</title>
+    <title>ChromaKey v4 (G/B/Black/White)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -144,7 +144,7 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            image-rendering: -webkit-optimize-contrast; /* Try to keep sharp for pixel art */
+            image-rendering: -webkit-optimize-contrast; 
         }
 
         .card-actions {
@@ -152,6 +152,17 @@
             display: flex;
             justify-content: space-between;
             background: #222;
+            align-items: center;
+        }
+        
+        .tag {
+            font-size: 0.6rem;
+            background: #444;
+            color: #ccc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 8px;
+            text-transform: uppercase;
         }
 
         .icon-btn {
@@ -179,7 +190,7 @@
 </head>
 <body>
 
-    <h1>Chroma Tool <small style="font-size:0.5em; color:#666">v3 (Resize)</small></h1>
+    <h1>Chroma Tool <small style="font-size:0.5em; color:#666">v4 (Auto-Detect)</small></h1>
 
     <div class="container">
         <div class="controls">
@@ -200,8 +211,8 @@
             </div>
 
             <div class="control-group">
-                <label>Chroma Tolerance <span id="tolVal">30</span></label>
-                <input type="range" id="tolerance" min="1" max="150" value="30">
+                <label>Tolerance / Threshold <span id="tolVal">50</span></label>
+                <input type="range" id="tolerance" min="1" max="150" value="50">
             </div>
 
             <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
@@ -217,7 +228,12 @@
             </div>
             
             <div style="margin-top:20px; font-size: 0.8rem; color: #777; line-height: 1.4;">
-                <strong>Auto-Fix:</strong> "Specks" in corners are automatically removed. Images are processed at full quality before resizing.
+                <strong>Auto-Detect:</strong> Automatically identifies Green, Blue, Black, or White backgrounds.
+                <br><br>
+                <strong>Tolerance:</strong>
+                <br>• Green/Blue: Color difference
+                <br>• Black: Brightness threshold
+                <br>• White: Darkness threshold
             </div>
         </div>
 
@@ -235,7 +251,7 @@
     const state = {
         files: [], 
         settings: { 
-            tolerance: 30, 
+            tolerance: 50, 
             strokeWidth: 10, 
             strokeColor: '#000000',
             exportSize: 'original' 
@@ -265,7 +281,7 @@
     });
 
     function loadSettings() {
-        const saved = localStorage.getItem('chromaToolSettings_v3');
+        const saved = localStorage.getItem('chromaToolSettings_v4');
         if (saved) {
             state.settings = { ...state.settings, ...JSON.parse(saved) };
             els.tolerance.value = state.settings.tolerance;
@@ -279,7 +295,7 @@
     }
 
     function saveSettings() {
-        localStorage.setItem('chromaToolSettings_v3', JSON.stringify(state.settings));
+        localStorage.setItem('chromaToolSettings_v4', JSON.stringify(state.settings));
     }
 
     function bindEvents() {
@@ -360,31 +376,63 @@
             const width = canvas.width;
             const height = canvas.height;
 
-            // 2. Detect Background
-            let gScore = 0, bScore = 0;
-            // Sample borders and center
-            const samples = [0, width-1, (height-1)*width, width*height-1, width/2, width*height/2];
+            // 2. DETECT BACKGROUND TYPE
+            let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
             
             // Sparse Sampling for detection
             for (let i = 0; i < data.length; i+=16) { 
-                if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
+                // Only check borders or sparse grid
+                if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0 || i % (width*4*10) === 0) {
                     const r = data[i], g = data[i+1], b = data[i+2];
-                    if (g > r && g > b) gScore++;
-                    else if (b > r && b > g) bScore++;
+                    const bright = (r+g+b)/3;
+                    
+                    if (bright < 40) blackScore++; // Check for Black
+                    else if (bright > 230) whiteScore++; // Check for White
+                    else if (g > r && g > b) gScore++; // Check for Green
+                    else if (b > r && b > g) bScore++; // Check for Blue
                 }
             }
-            const isGreen = gScore >= bScore;
-            const tol = state.settings.tolerance;
 
-            // 3. Chroma Key
+            // Determine winner
+            let mode = 'green';
+            let maxScore = Math.max(gScore, bScore, blackScore, whiteScore);
+            
+            if (maxScore === 0) mode = 'green'; // default
+            else if (maxScore === bScore) mode = 'blue';
+            else if (maxScore === blackScore) mode = 'black';
+            else if (maxScore === whiteScore) mode = 'white';
+
+            // Update UI tag
+            const tag = card.querySelector('.tag');
+            tag.innerText = mode;
+            tag.style.color = (mode === 'white' || mode === 'green') ? '#000' : '#fff';
+            tag.style.background = (mode === 'green') ? '#90EE90' : 
+                                   (mode === 'blue') ? '#ADD8E6' : 
+                                   (mode === 'white') ? '#eee' : '#222';
+
+            // 3. REMOVE BACKGROUND
+            const tol = state.settings.tolerance;
+            
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i], g = data[i+1], b = data[i+2];
                 let isBackground = false;
-                if (isGreen) {
+
+                if (mode === 'green') {
                     if (g > r + tol && g > b + tol) isBackground = true;
-                } else {
+                } 
+                else if (mode === 'blue') {
                     if (b > r + tol && b > g + tol) isBackground = true;
                 }
+                else if (mode === 'black') {
+                    // For black, Tolerance acts as a threshold (remove if brightness < tolerance)
+                    if (r < tol && g < tol && b < tol) isBackground = true;
+                }
+                else if (mode === 'white') {
+                    // For white, remove if brightness > (255 - tolerance)
+                    const threshold = 255 - tol;
+                    if (r > threshold && g > threshold && b > threshold) isBackground = true;
+                }
+
                 if (isBackground) data[i+3] = 0; 
             }
 
@@ -404,18 +452,13 @@
             
             if (exportSetting !== 'original') {
                 const targetSize = parseInt(exportSetting);
-                // Only resize if input dimensions differ substantially (optional check, but good for consistency)
                 if (targetSize > 0) {
                     const scaledCanvas = document.createElement('canvas');
                     scaledCanvas.width = targetSize;
                     scaledCanvas.height = targetSize;
                     const sCtx = scaledCanvas.getContext('2d');
-                    
-                    // High Quality Scaling settings
                     sCtx.imageSmoothingEnabled = true;
                     sCtx.imageSmoothingQuality = 'high';
-                    
-                    // Draw processed canvas onto scaled canvas
                     sCtx.drawImage(canvas, 0, 0, targetSize, targetSize);
                     outputCanvas = scaledCanvas;
                 }
@@ -524,7 +567,6 @@
                 if (dist > strokeWidth - 0.5) {
                     alpha = 255 * (1 - (dist - (strokeWidth - 0.5)));
                 }
-                // Overwrite transparent pixels with stroke
                 data[pIdx] = sr; data[pIdx+1] = sg; data[pIdx+2] = sb; data[pIdx+3] = alpha;
             }
         }
@@ -537,7 +579,10 @@
             <div class="img-preview"><div style="color: #555">Waiting...</div></div>
             <div class="processing-overlay">Processing...</div>
             <div class="card-actions">
-                <div style="font-size:0.8rem; color:#fff; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${filename}</div>
+                <div style="display:flex; align-items:center; max-width: 70%;">
+                    <span class="tag">...</span>
+                    <div style="font-size:0.8rem; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${filename}</div>
+                </div>
                 <button class="icon-btn dl-btn" title="Download">⬇</button>
             </div>
         `;
