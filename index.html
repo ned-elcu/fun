@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey v4.2 (Auto-Icon)</title>
+    <title>ChromaKey v4.3 (Interactive Tag)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -12,7 +12,7 @@
             --bg: #1e1e24;
             --panel: #2b2b36;
             --text: #e1e1e6;
-            --accent: #ff006e; /* Changed accent to Pink to signify v4.2 */
+            --accent: #ff006e;
             --border: #444;
             --input-bg: #1a1a20;
         }
@@ -48,6 +48,7 @@
             height: fit-content;
             position: sticky;
             top: 20px;
+            z-index: 10;
         }
 
         .control-group { margin-bottom: 20px; }
@@ -69,7 +70,6 @@
         }
         select:focus { outline: 2px solid var(--accent); border-color: transparent; }
         
-        /* New Checkbox Style */
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -80,18 +80,8 @@
             border-radius: 4px;
             justify-content: space-between;
         }
-        .checkbox-group label {
-            margin-bottom: 0;
-            color: var(--text);
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: var(--accent);
-            cursor: pointer;
-        }
+        .checkbox-group label { margin-bottom: 0; color: var(--text); font-size: 1rem; cursor: pointer; }
+        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
 
 
         .dropzone {
@@ -119,10 +109,7 @@
             align-items: center;
         }
         
-        .batch-buttons {
-            display: flex;
-            gap: 10px; 
-        }
+        .batch-buttons { display: flex; gap: 10px; }
 
         .btn {
             background: var(--accent);
@@ -143,12 +130,13 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 15px;
+            padding-bottom: 100px; /* Space for popups */
         }
 
         .image-card {
             background: var(--panel);
             border-radius: 6px;
-            overflow: hidden;
+            overflow: visible; /* Changed to visible for popups */
             position: relative;
             display: flex;
             flex-direction: column;
@@ -168,14 +156,15 @@
             align-items: center;
             justify-content: center;
             padding: 10px;
+            overflow: hidden; /* Keep image inside */
+            border-radius: 6px 6px 0 0;
         }
 
-        /* Force image to show boundaries clearly */
         .img-preview img {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain; 
-            border: 1px solid #555; /* Visual guide for the user */
+            border: 1px solid #555;
         }
 
         .card-actions {
@@ -184,8 +173,11 @@
             justify-content: space-between;
             background: #222;
             align-items: center;
+            border-radius: 0 0 6px 6px;
+            position: relative;
         }
         
+        /* --- NEW: Interactive Tag Styles --- */
         .tag {
             font-size: 0.6rem;
             background: #444;
@@ -194,6 +186,48 @@
             border-radius: 4px;
             margin-right: 8px;
             text-transform: uppercase;
+            cursor: pointer;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+        .tag:hover {
+            border-color: #fff;
+            filter: brightness(1.2);
+        }
+
+        /* --- NEW: Popover Menu Styles --- */
+        .popover-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            min-width: 120px;
+            overflow: hidden;
+        }
+        .popover-menu.active { display: flex; }
+        
+        .popover-item {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: #eee;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .popover-item:last-child { border-bottom: none; }
+        .popover-item:hover { background: var(--accent); color: white; }
+        
+        .color-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.3);
         }
 
         .icon-btn {
@@ -215,13 +249,15 @@
             color: white;
             font-size: 0.8rem;
             display: none;
+            z-index: 50;
+            border-radius: 6px;
         }
         .processing .processing-overlay { display: flex; }
     </style>
 </head>
 <body>
 
-    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.2 (Trim & Center)</small></h1>
+    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.3 (Interactive)</small></h1>
 
     <div class="container">
         <div class="controls">
@@ -231,7 +267,7 @@
             </div>
 
             <div class="control-group">
-                <label>Export Size (Required for Icons)</label>
+                <label>Export Size</label>
                 <select id="exportSize">
                     <option value="512">512 x 512</option>
                     <option value="256">256 x 256</option>
@@ -248,7 +284,7 @@
 
 
             <div class="control-group">
-                <label>Tolerance / Threshold <span id="tolVal">50</span></label>
+                <label>Tolerance <span id="tolVal">50</span></label>
                 <input type="range" id="tolerance" min="1" max="150" value="50">
             </div>
 
@@ -262,14 +298,6 @@
             <div class="control-group">
                 <label>Stroke Color</label>
                 <input type="color" id="strokeColor" value="#000000">
-            </div>
-            
-            <div style="margin-top:20px; font-size: 0.8rem; color: #777; line-height: 1.4;">
-                <strong>How Normalization works now:</strong>
-                <br>1. Removes background.
-                <br>2. Trims empty transparent space around object.
-                <br>3. Scales object to fit the Export Size (with padding).
-                <br>4. Centers object perfectly.
             </div>
         </div>
 
@@ -285,6 +313,8 @@
         </div>
     </div>
 
+    <input type="color" id="globalColorPicker" style="display:none; position:absolute; visibility:hidden;">
+
 <script>
     // --- State ---
     const state = {
@@ -295,7 +325,8 @@
             strokeColor: '#000000',
             exportSize: '512',
             normalizeObject: true 
-        }
+        },
+        activeMenuFileId: null // NEW: Track which menu is open
     };
 
     const els = {
@@ -311,7 +342,8 @@
         resultsGrid: document.getElementById('resultsGrid'),
         downloadZipBtn: document.getElementById('downloadZipBtn'),
         downloadBatchBtn: document.getElementById('downloadBatchBtn'),
-        statusText: document.getElementById('statusText')
+        statusText: document.getElementById('statusText'),
+        globalColorPicker: document.getElementById('globalColorPicker') // NEW
     };
 
     let processTimeout;
@@ -321,6 +353,18 @@
         loadSettings();
         bindEvents();
     });
+
+    // Close menus when clicking outside
+    window.addEventListener('click', (e) => {
+        if (!e.target.closest('.tag') && !e.target.closest('.popover-menu')) {
+            closeAllMenus();
+        }
+    });
+
+    function closeAllMenus() {
+        document.querySelectorAll('.popover-menu').forEach(el => el.classList.remove('active'));
+        state.activeMenuFileId = null;
+    }
 
     function loadSettings() {
         const saved = localStorage.getItem('chromaToolSettings_v4.2');
@@ -374,6 +418,19 @@
 
         els.downloadZipBtn.addEventListener('click', downloadAllZip);
         els.downloadBatchBtn.addEventListener('click', downloadAllBatch);
+
+        // Global color picker listener
+        els.globalColorPicker.addEventListener('input', (e) => {
+            if (state.activeMenuFileId) {
+                const fileData = state.files.find(f => f.id === state.activeMenuFileId);
+                if (fileData) {
+                    fileData.manualMode = 'custom';
+                    fileData.customHex = e.target.value;
+                    closeAllMenus();
+                    processImage(fileData);
+                }
+            }
+        });
     }
 
     function handleFiles(fileList) {
@@ -383,7 +440,19 @@
             const card = createResultCard(id, file.name);
             els.resultsGrid.appendChild(card);
 
-            const fileData = { id, originalFile: file, processedBlob: null, element: card };
+            const fileData = { 
+                id, 
+                originalFile: file, 
+                processedBlob: null, 
+                element: card,
+                manualMode: null, // NEW: Stores override preference
+                customHex: '#ff0000' // NEW: Stores custom color
+            };
+
+            // Bind Tag Click
+            const tag = card.querySelector('.tag');
+            tag.addEventListener('click', (e) => toggleMenu(e, fileData));
+
             state.files.push(fileData);
             processImage(fileData);
         });
@@ -404,6 +473,54 @@
         }, 300);
     }
 
+    // --- NEW: Menu Handling ---
+    function toggleMenu(e, fileData) {
+        e.stopPropagation();
+        const existingMenu = fileData.element.querySelector('.popover-menu');
+        
+        // If this menu is already open, close it
+        if (existingMenu.classList.contains('active')) {
+            existingMenu.classList.remove('active');
+            state.activeMenuFileId = null;
+            return;
+        }
+
+        // Close others
+        closeAllMenus();
+
+        // Build Menu HTML
+        existingMenu.innerHTML = `
+            <div class="popover-item" data-mode="green"><div class="color-dot" style="background:#0f0"></div> Green</div>
+            <div class="popover-item" data-mode="blue"><div class="color-dot" style="background:#00f"></div> Blue</div>
+            <div class="popover-item" data-mode="white"><div class="color-dot" style="background:#fff"></div> White</div>
+            <div class="popover-item" data-mode="black"><div class="color-dot" style="background:#000"></div> Black</div>
+            <div class="popover-item" data-mode="custom"><div class="color-dot" style="background:linear-gradient(45deg, red, yellow, blue)"></div> Color Pick...</div>
+        `;
+
+        // Bind clicks
+        existingMenu.querySelectorAll('.popover-item').forEach(item => {
+            item.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const mode = item.dataset.mode;
+                
+                if (mode === 'custom') {
+                    // Trigger global color picker
+                    state.activeMenuFileId = fileData.id;
+                    els.globalColorPicker.click(); 
+                    // Note: Menu closes when picker input triggers or user clicks away
+                } else {
+                    fileData.manualMode = mode;
+                    closeAllMenus();
+                    processImage(fileData);
+                }
+            });
+        });
+
+        existingMenu.classList.add('active');
+        state.activeMenuFileId = fileData.id;
+    }
+
+
     // --- Core Processing ---
 
     function processImage(fileData) {
@@ -412,7 +529,6 @@
 
         const img = new Image();
         img.onload = () => {
-            // 1. WORK AT FULL RESOLUTION INITIALLY
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
@@ -424,60 +540,102 @@
             const width = canvas.width;
             const height = canvas.height;
 
-            // 2. DETECT BACKGROUND (Sampled)
-            let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
-            for (let i = 0; i < data.length; i+=32) { 
-                if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
-                    const r = data[i], g = data[i+1], b = data[i+2];
-                    const bright = (r+g+b)/3;
-                    if (bright < 40) blackScore++; 
-                    else if (bright > 230) whiteScore++; 
-                    else if (g > r && g > b) gScore++; 
-                    else if (b > r && b > g) bScore++; 
-                }
-            }
+            // 1. DETERMINE MODE (Auto or Manual)
             let mode = 'green';
-            let maxScore = Math.max(gScore, bScore, blackScore, whiteScore);
-            if (maxScore === bScore) mode = 'blue';
-            else if (maxScore === blackScore) mode = 'black';
-            else if (maxScore === whiteScore) mode = 'white';
+            let customRGB = null;
 
-            // Tag Update
+            if (fileData.manualMode) {
+                mode = fileData.manualMode;
+                if (mode === 'custom' && fileData.customHex) {
+                    // Convert hex to rgb
+                    const r = parseInt(fileData.customHex.substr(1,2), 16);
+                    const g = parseInt(fileData.customHex.substr(3,2), 16);
+                    const b = parseInt(fileData.customHex.substr(5,2), 16);
+                    customRGB = { r, g, b };
+                }
+            } else {
+                // Auto Detection Logic
+                let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
+                for (let i = 0; i < data.length; i+=32) { 
+                    if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
+                        const r = data[i], g = data[i+1], b = data[i+2];
+                        const bright = (r+g+b)/3;
+                        if (bright < 40) blackScore++; 
+                        else if (bright > 230) whiteScore++; 
+                        else if (g > r && g > b) gScore++; 
+                        else if (b > r && b > g) bScore++; 
+                    }
+                }
+                let maxScore = Math.max(gScore, bScore, blackScore, whiteScore);
+                if (maxScore === bScore) mode = 'blue';
+                else if (maxScore === blackScore) mode = 'black';
+                else if (maxScore === whiteScore) mode = 'white';
+            }
+
+            // Update UI Tag
             const tag = card.querySelector('.tag');
-            tag.innerText = mode;
-            tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : (mode === 'white') ? '#eee' : '#222';
-            tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
+            if (mode === 'custom' && customRGB) {
+                tag.innerText = 'Custom';
+                tag.style.background = fileData.customHex;
+                // calculate contrast for text color
+                const yiq = ((customRGB.r*299)+(customRGB.g*587)+(customRGB.b*114))/1000;
+                tag.style.color = (yiq >= 128) ? 'black' : 'white';
+            } else {
+                tag.innerText = mode;
+                tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : (mode === 'white') ? '#eee' : '#222';
+                tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
+            }
 
-            // 3. REMOVE BACKGROUND
+
+            // 2. REMOVE BACKGROUND
             const tol = state.settings.tolerance;
+            
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i], g = data[i+1], b = data[i+2];
                 let isBackground = false;
-                if (mode === 'green') { if (g > r + tol && g > b + tol) isBackground = true; } 
-                else if (mode === 'blue') { if (b > r + tol && b > g + tol) isBackground = true; }
-                else if (mode === 'black') { if (r < tol && g < tol && b < tol) isBackground = true; }
-                else if (mode === 'white') { if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; }
+
+                if (mode === 'green') { 
+                    if (g > r + tol && g > b + tol) isBackground = true; 
+                } 
+                else if (mode === 'blue') { 
+                    if (b > r + tol && b > g + tol) isBackground = true; 
+                }
+                else if (mode === 'black') { 
+                    if (r < tol && g < tol && b < tol) isBackground = true; 
+                }
+                else if (mode === 'white') { 
+                    if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; 
+                }
+                else if (mode === 'custom' && customRGB) {
+                    // Euclidean distance for custom color
+                    // We multiply tolerance by 1.5 to make it feel similar to RGB diff sliders
+                    const dist = Math.sqrt(
+                        Math.pow(r - customRGB.r, 2) + 
+                        Math.pow(g - customRGB.g, 2) + 
+                        Math.pow(b - customRGB.b, 2)
+                    );
+                    if (dist < tol * 2.5) isBackground = true; 
+                }
+
                 if (isBackground) data[i+3] = 0; 
             }
 
-            // 4. CLEAN UP (Despeckle)
+            // 3. CLEAN UP (Despeckle)
             removeIslands(data, width, height, 100);
 
-            // 5. STROKE
+            // 4. STROKE
             if (state.settings.strokeWidth > 0) {
                 applyStroke(data, width, height, state.settings.strokeWidth, state.settings.strokeColor);
             }
 
-            // COMMIT PIXELS TO CANVAS FOR RESAMPLING
             ctx.putImageData(imageData, 0, 0);
 
-            // 6. NORMALIZE / RESIZE (The Fix)
+            // 5. NORMALIZE / RESIZE
             let finalCanvas = document.createElement('canvas');
             let exportSize = parseInt(state.settings.exportSize);
             
-            // Handle 'original' or invalid size
             if (isNaN(exportSize)) {
-                exportSize = Math.max(width, height); // Fallback to max dimension
+                exportSize = Math.max(width, height); 
             }
             
             finalCanvas.width = exportSize;
@@ -487,44 +645,36 @@
             fCtx.imageSmoothingQuality = 'high';
 
             if (state.settings.normalizeObject) {
-                // A. FIND BOUNDING BOX OF NON-TRANSPARENT PIXELS
                 const bounds = getContentBounds(data, width, height);
                 
                 if (bounds.w > 0 && bounds.h > 0) {
-                    // B. CALCULATE SCALE TO FIT
-                    const padding = exportSize * 0.1; // 10% padding
+                    const padding = exportSize * 0.1; 
                     const availableW = exportSize - (padding * 2);
                     const availableH = exportSize - (padding * 2);
-
                     const scale = Math.min(availableW / bounds.w, availableH / bounds.h);
                     
                     const renderW = bounds.w * scale;
                     const renderH = bounds.h * scale;
-                    
-                    // C. CENTER
                     const renderX = (exportSize - renderW) / 2;
                     const renderY = (exportSize - renderH) / 2;
 
-                    // Draw cropped area from source canvas to new square canvas
                     fCtx.drawImage(
                         canvas, 
-                        bounds.x, bounds.y, bounds.w, bounds.h, // Source Trim
-                        renderX, renderY, renderW, renderH      // Dest Center
+                        bounds.x, bounds.y, bounds.w, bounds.h, 
+                        renderX, renderY, renderW, renderH      
                     );
                 } else {
-                    // Empty image
                     fCtx.clearRect(0,0, exportSize, exportSize);
                 }
             } else {
-                // Standard Stretch/Resize (Old behavior)
                 if (state.settings.exportSize === 'original') {
-                    finalCanvas = canvas; // Keep original
+                    finalCanvas = canvas; 
                 } else {
                     fCtx.drawImage(canvas, 0, 0, exportSize, exportSize);
                 }
             }
 
-            // 7. FINALIZE
+            // 6. FINALIZE
             finalCanvas.toBlob((blob) => {
                 fileData.processedBlob = blob;
                 const url = URL.createObjectURL(blob);
@@ -543,7 +693,8 @@
         img.src = URL.createObjectURL(fileData.originalFile);
     }
 
-    // Helper: Find strict bounding box of alpha > 0
+    // --- Helpers (Unchanged Logic, mostly) ---
+
     function getContentBounds(data, w, h) {
         let minX = w, minY = h, maxX = 0, maxY = 0;
         let found = false;
@@ -576,13 +727,10 @@
                     
                     while(stack.length > 0) {
                         const curr = stack.pop();
-                        const cx = curr % width;
-                        const cy = Math.floor(curr / width);
                         const neighbors = [1, -1, width, -width];
                         for (let offset of neighbors) {
                              const nIdx = curr + offset;
                              if (nIdx >= 0 && nIdx < width*height && visited[nIdx]===0) {
-                                 // Simple adjacency check (imperfect for edges but fast)
                                  if (data[nIdx*4+3] > 0) {
                                      visited[nIdx] = 1;
                                      stack.push(nIdx);
@@ -608,7 +756,6 @@
 
         for (let i = 0; i < width * height; i++) grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
 
-        // Euclidean Approx (8SSEDT) - Forward
         for (let i = 0; i < width*height; i++) {
             if (grid[i] > 0) {
                 const x = i % width;
@@ -621,7 +768,6 @@
                 grid[i] = minD;
             }
         }
-        // Backward
         for (let i = width*height - 1; i >= 0; i--) {
             if (grid[i] > 0) {
                 const x = i % width;
@@ -654,7 +800,8 @@
             <div class="processing-overlay">Processing...</div>
             <div class="card-actions">
                 <div style="display:flex; align-items:center; max-width: 70%;">
-                    <span class="tag">...</span>
+                    <span class="tag" title="Click to change chroma key">...</span>
+                    <div class="popover-menu"></div>
                     <div style="font-size:0.8rem; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${filename}</div>
                 </div>
                 <button class="icon-btn dl-btn" title="Download">⬇</button>
