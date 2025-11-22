@@ -1,185 +1,343 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Chroma Tool v4.4 (Eyedropper) — Redesigned</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChromaKey v4.4 (Eyedropper)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-  <!-- Tailwind Play CDN with theme tweak -->
-  <script>
-    window.tailwind = window.tailwind || {};
-    window.tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            chromaBg: '#0f1013',      /* main page bg */
-            chromaPanel: '#14141a',   /* panels / cards */
-            chromaText: '#e6eef8',
-            chromaAccent: '#ff006e',
-            chromaBorder: '#2b2b33',
-            chromaInput: '#0b0b0e'
-          },
-          boxShadow: {
-            'glow-lg': '0 10px 30px rgba(0,0,0,0.6), 0 2px 8px rgba(255,0,110,0.06)'
-          },
-          fontFamily: {
-            ui: ['Inter', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial']
-          }
+    <style>
+        :root {
+            --bg: #1e1e24;
+            --panel: #2b2b36;
+            --text: #e1e1e6;
+            --accent: #ff006e;
+            --border: #444;
+            --input-bg: #1a1a20;
         }
-      }
-    };
-  </script>
-  <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Required libs (must remain) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-  <style>
-    /* Small compatibility / necessary bits that Tailwind utilities don't cover easily */
-    :root {
-      --accent: #ff006e;
-    }
+        h1 { margin-bottom: 20px; font-weight: 300; letter-spacing: 1px; }
 
-    /* Ensure existing class hooks used by JS still behave as expected */
-    .img-preview img { pointer-events: none; object-fit: contain; max-width: 100%; max-height: 100%; }
-    .img-preview.picking-mode { cursor: crosshair; outline: 2px dashed rgba(255,0,110,0.18); }
-    .processing .processing-overlay { display:flex !important; }
-    .processing-overlay { display:none; }
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
 
-    /* Eyedropper icon kept as data URI for compatibility with generated menu */
-    .eyedropper-icon {
-      width: 14px; height: 14px;
-      background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
-      background-size: contain;
-      display:inline-block;
-    }
+        /* Controls Panel */
+        .controls {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+            z-index: 10;
+        }
 
-    /* Toast animations */
-    @keyframes toast-in {
-      from { transform: translateY(12px) scale(.98); opacity: 0; }
-      to   { transform: translateY(0) scale(1); opacity: 1; }
-    }
-    @keyframes toast-out {
-      from { transform: translateY(0) scale(1); opacity: 1; }
-      to   { transform: translateY(12px) scale(.98); opacity: 0; }
-    }
+        .control-group { margin-bottom: 20px; }
+        .control-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: #aaa; }
+        .control-group span { float: right; color: var(--accent); font-weight: bold; }
 
-    /* Small visual polish for popover-menu created by JS (positioning preserved) */
-    .popover-menu { min-width: 160px; z-index: 60; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+        input[type="color"] { width: 100%; height: 40px; border: none; cursor: pointer; background: none; }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            justify-content: space-between;
+        }
+        .checkbox-group label { margin-bottom: 0; color: var(--text); font-size: 1rem; cursor: pointer; }
+        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
 
-    /* Ensure hidden file input is still not focusable */
-    input[type="file"][style*="display: none;"] { position: absolute; left: -9999px; }
-  </style>
+
+        .dropzone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 20px;
+        }
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent);
+            background: rgba(255, 0, 110, 0.1);
+        }
+        .dropzone p { margin: 0; color: #888; pointer-events: none; }
+
+        /* Results Grid */
+        .results-area { display: flex; flex-direction: column; }
+
+        .batch-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .batch-buttons { display: flex; gap: 10px; }
+
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.8; }
+        .btn:disabled { background: #555; color:#888; cursor: not-allowed; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            padding-bottom: 100px;
+        }
+
+        .image-card {
+            background: var(--panel);
+            border-radius: 6px;
+            overflow: visible;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .img-preview {
+            height: 160px;
+            background-image: 
+                linear-gradient(45deg, #333 25%, transparent 25%), 
+                linear-gradient(-45deg, #333 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #333 75%), 
+                linear-gradient(-45deg, transparent 75%, #333 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            overflow: hidden; 
+            border-radius: 6px 6px 0 0;
+            position: relative;
+        }
+
+        /* Styling for the Eyedropper mode */
+        .img-preview.picking-mode {
+            cursor: crosshair;
+            box-shadow: inset 0 0 0 2px var(--accent);
+        }
+        .img-preview.picking-mode::after {
+            content: "Click color to remove";
+            position: absolute;
+            bottom: 5px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .img-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; 
+            border: 1px solid #555;
+            /* Disable pointer events on img so click goes to container for easier coordinate math */
+            pointer-events: none; 
+        }
+
+        .card-actions {
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+            background: #222;
+            align-items: center;
+            border-radius: 0 0 6px 6px;
+            position: relative;
+        }
+        
+        .tag {
+            font-size: 0.6rem;
+            background: #444;
+            color: #ccc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+        .tag:hover {
+            border-color: #fff;
+            filter: brightness(1.2);
+        }
+
+        /* Popover Menu */
+        .popover-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            min-width: 140px;
+            overflow: hidden;
+        }
+        .popover-menu.active { display: flex; }
+        
+        .popover-item {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: #eee;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .popover-item:last-child { border-bottom: none; }
+        .popover-item:hover { background: var(--accent); color: white; }
+        
+        .color-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Custom icon for eyedropper */
+        .eyedropper-icon {
+            width: 12px; height: 12px;
+            background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
+            background-size: contain;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .icon-btn:hover { color: #fff; }
+
+        .processing-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            display: none;
+            z-index: 50;
+            border-radius: 6px;
+        }
+        .processing .processing-overlay { display: flex; }
+    </style>
 </head>
-<body class="bg-chromaBg text-chromaText font-ui antialiased">
+<body>
 
-  <!-- Header -->
-  <header class="w-full border-b border-chromaBorder/50">
-    <div class="max-w-6xl mx-auto px-4 py-6 flex items-center gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-md bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg">
-          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 17v4h4l11-11-4-4L3 17z" fill="currentColor"/></svg>
-        </div>
-        <div>
-          <h1 class="text-2xl font-semibold leading-tight">Chroma Tool <span class="text-sm text-chromaBorder/70 font-light">v4.4 (Eyedropper)</span></h1>
-          <p class="text-xs text-chromaBorder/60 mt-0.5">Quick background removal — modern UI redesign (Tailwind)</p>
-        </div>
-      </div>
+    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.4 (Eyedropper)</small></h1>
 
-      <div class="ml-auto flex items-center gap-3">
-        <div id="statusText" class="text-sm text-chromaBorder/60">0 images loaded</div>
-        <button id="downloadBatchBtn" class="btn inline-flex items-center gap-2 bg-chromaAccent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-2 rounded-md text-xs font-semibold" disabled>
-          Download All (Files)
-        </button>
-        <button id="downloadZipBtn" class="btn inline-flex items-center gap-2 bg-neutral-800 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-2 rounded-md text-xs font-semibold" disabled>
-          Download All (ZIP)
-        </button>
-      </div>
+    <div class="container">
+        <div class="controls">
+            <div class="dropzone" id="dropzone">
+                <p>Drag & Drop Images<br>or Click to Browse</p>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+            </div>
+
+            <div class="control-group">
+                <label>Export Size</label>
+                <select id="exportSize">
+                    <option value="512">512 x 512</option>
+                    <option value="256">256 x 256</option>
+                    <option value="128">128 x 128</option>
+                    <option value="64">64 x 64</option>
+                    <option value="original">Original (Disable Norm)</option>
+                </select>
+            </div>
+            
+            <div class="checkbox-group">
+                <label for="normalizeObject">Normalize / Center Object</label>
+                <input type="checkbox" id="normalizeObject" checked>
+            </div>
+
+            <div class="control-group">
+                <label>Tolerance <span id="tolVal">50</span></label>
+                <input type="range" id="tolerance" min="1" max="150" value="50">
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+
+            <div class="control-group">
+                <label>Stroke Width (px) <span id="strokeVal">10</span></label>
+                <input type="range" id="strokeWidth" min="0" max="50" value="10">
+            </div>
+
+            <div class="control-group">
+                <label>Stroke Color</label>
+                <input type="color" id="strokeColor" value="#000000">
+            </div>
+        </div>
+
+        <div class="results-area">
+            <div class="batch-actions">
+                <span id="statusText">0 images loaded</span>
+                <div class="batch-buttons">
+                    <button id="downloadBatchBtn" class="btn" disabled>Download All (Files)</button>
+                    <button id="downloadZipBtn" class="btn" disabled>Download All (ZIP)</button>
+                </div>
+            </div>
+            <div class="grid" id="resultsGrid"></div>
+        </div>
     </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-
-    <!-- Controls panel (keep same IDs & inputs) -->
-    <aside class="sticky top-6 self-start">
-      <div class="bg-chromaPanel/95 rounded-2xl p-5 shadow-glow-lg border border-chromaBorder">
-        <!-- Dropzone -->
-        <label id="dropzone" for="fileInput" class="dropzone group flex flex-col items-center justify-center gap-3 border-2 border-dashed border-chromaBorder rounded-lg p-5 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-chromaPanel focus-visible:ring-chromaAccent" aria-describedby="dropzone-desc">
-          <svg class="w-9 h-9 text-chromaBorder/60 group-hover:text-chromaAccent transition-colors" viewBox="0 0 24 24" fill="none"><path d="M12 3v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13l7-7 7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div class="text-sm text-chromaBorder/70">Drag & Drop images here — or click to browse</div>
-          <div id="dropzone-desc" class="text-[11px] text-chromaBorder/50">Supports multi-image selection · PNG / JPG</div>
-          <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
-        </label>
-
-        <div class="mt-5 space-y-4">
-
-          <div>
-            <label for="exportSize" class="block text-xs text-chromaBorder/60 mb-2">Export Size</label>
-            <select id="exportSize" class="w-full rounded-md bg-chromaInput border border-chromaBorder text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-chromaAccent">
-              <option value="512">512 x 512</option>
-              <option value="256">256 x 256</option>
-              <option value="128">128 x 128</option>
-              <option value="64">64 x 64</option>
-              <option value="original">Original (Disable Norm)</option>
-            </select>
-          </div>
-
-          <div class="flex items-center justify-between bg-chromaInput border border-chromaBorder rounded-md px-3 py-2">
-            <div>
-              <label for="normalizeObject" class="text-sm text-chromaBorder/70 cursor-pointer">Normalize / Center Object</label>
-            </div>
-            <div>
-              <input id="normalizeObject" type="checkbox" checked class="h-5 w-5 rounded-md accent-chromaAccent"/>
-            </div>
-          </div>
-
-          <div>
-            <label for="tolerance" class="block text-xs text-chromaBorder/60 mb-2">Tolerance <span id="tolVal" class="text-chromaAccent font-semibold">50</span></label>
-            <input id="tolerance" type="range" min="1" max="150" value="50" class="w-full h-2 accent-chromaAccent">
-          </div>
-
-          <hr class="border-chromaBorder/40 my-2">
-
-          <div>
-            <label for="strokeWidth" class="block text-xs text-chromaBorder/60 mb-2">Stroke Width (px) <span id="strokeVal" class="text-chromaAccent font-semibold">10</span></label>
-            <input id="strokeWidth" type="range" min="0" max="50" value="10" class="w-full h-2 accent-chromaAccent">
-          </div>
-
-          <div>
-            <label for="strokeColor" class="block text-xs text-chromaBorder/60 mb-2">Stroke Color</label>
-            <input id="strokeColor" type="color" value="#000000" class="w-full h-10 p-0 border-0 rounded-md">
-          </div>
-
-          <div class="pt-2">
-            <button id="downloadZipBtn_alt" class="w-full text-xs py-2 rounded-md bg-neutral-700 hover:bg-neutral-650 text-white hidden">Alternate</button>
-          </div>
-
-        </div>
-      </div>
-    </aside>
-
-    <!-- Results / Grid -->
-    <section class="min-h-[60vh]">
-      <div class="bg-transparent mb-4 flex items-center justify-between">
-        <div class="text-sm text-chromaBorder/60">Processed results</div>
-        <div class="flex items-center gap-3">
-          <!-- These buttons are duplicates visually to header but the original IDs MUST remain on the header top — keep header ones as primary -->
-        </div>
-      </div>
-
-      <div id="resultsGrid" class="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 auto-rows-fr">
-        <!-- JS will append .image-card elements here (keeps same class names / structure) -->
-      </div>
-
-      <div class="mt-8 text-xs text-chromaBorder/50">Tip: Click a tag on a card to change the chroma (Green/Blue/White/Black) or use the Eyedropper to pick a custom background color.</div>
-    </section>
-  </main>
-
-  <!-- Toast / Snackbar Container (UI + hook) -->
-  <div id="toastContainer" aria-live="polite" aria-atomic="true" class="fixed z-50 right-6 bottom-6 flex flex-col gap-3 max-w-xs sm:max-w-sm"></div>
-
-  <!-- IMPORTANT: The application core JS must remain unchanged. Below is the original app logic (kept intact) -->
 <script>
     // --- State ---
     const state = {
@@ -716,19 +874,17 @@
 
     function createResultCard(id, filename) {
         const div = document.createElement('div');
-        div.className = 'image-card bg-chromaPanel rounded-2xl overflow-hidden shadow-sm border border-chromaBorder flex flex-col';
+        div.className = 'image-card';
         div.innerHTML = `
-            <div class="img-preview bg-[conic-gradient(at_20%_20%,rgba(0,0,0,0.02),transparent)] h-44 flex items-center justify-center p-2">
-              <div style="color: #555">Waiting...</div>
-            </div>
-            <div class="processing-overlay absolute inset-0 bg-black/60 hidden items-center justify-center text-white text-sm">Processing...</div>
-            <div class="card-actions flex items-center justify-between px-3 py-2 bg-transparent border-t border-chromaBorder">
-                <div class="flex items-center gap-3 min-w-0">
-                    <span class="tag bg-neutral-700 text-xs px-2 py-1 rounded cursor-pointer select-none" title="Click to change chroma key">...</span>
-                    <div class="popover-menu hidden absolute mt-2 right-3"></div>
-                    <div class="text-sm truncate text-chromaBorder/50">${filename}</div>
+            <div class="img-preview"><div style="color: #555">Waiting...</div></div>
+            <div class="processing-overlay">Processing...</div>
+            <div class="card-actions">
+                <div style="display:flex; align-items:center; max-width: 70%;">
+                    <span class="tag" title="Click to change chroma key">...</span>
+                    <div class="popover-menu"></div>
+                    <div style="font-size:0.8rem; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${filename}</div>
                 </div>
-                <button class="icon-btn dl-btn text-chromaBorder/60 hover:text-chromaText" title="Download">⬇</button>
+                <button class="icon-btn dl-btn" title="Download">⬇</button>
             </div>
         `;
         return div;
@@ -770,160 +926,5 @@
         });
     }
 </script>
-
-<!-- Toast / Snackbar Implementation (UI only - non-intrusive, global hook) -->
-<script>
-  (function () {
-    const container = document.getElementById('toastContainer');
-
-    // Helper: is mobile viewport (for center vs corner placement)
-    function isMobile() {
-      return window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-    }
-
-    function placeContainer() {
-      if (isMobile()) {
-        container.style.right = '0';
-        container.style.left = '50%';
-        container.style.transform = 'translateX(-50%)';
-        container.style.bottom = '18px';
-      } else {
-        container.style.right = '24px';
-        container.style.left = 'auto';
-        container.style.transform = 'none';
-        container.style.bottom = '24px';
-      }
-    }
-    window.addEventListener('resize', placeContainer);
-    placeContainer();
-
-    /**
-     * showToast(type, message, options)
-     * type: 'success' | 'error' | 'info' | 'warning' | 'progress'
-     * message: string or DOM-friendly
-     * options:
-     *   - duration (ms) default 4000 (progress toasts do not auto-dismiss)
-     *   - action: { label: 'Undo', onClick: fn } (optional)
-     * Returns an object { id, dismiss } so callers can close programmatically.
-     */
-    function showToast(type, message, options = {}) {
-      const id = 't_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-      const dur = options.duration ?? 4000;
-      const role = (type === 'error' || type === 'warning') ? 'alert' : 'status';
-
-      // Create toast node
-      const t = document.createElement('div');
-      t.setAttribute('role', role);
-      t.setAttribute('aria-live', 'polite');
-      t.id = id;
-      t.className = 'max-w-full sm:max-w-sm w-full flex items-start gap-3 p-3 rounded-lg shadow-md border border-chromaBorder/50';
-      t.style.background = '#0b0b0e';
-      t.style.color = '#e6eef8';
-      t.style.animation = 'toast-in 220ms cubic-bezier(.2,.9,.3,1)';
-
-      // Icon
-      const icon = document.createElement('div');
-      icon.className = 'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white';
-      icon.style.background = (type === 'success') ? '#10b981' : (type === 'error') ? '#ef4444' : (type === 'warning') ? '#f59e0b' : (type === 'info') ? '#3b82f6' : '#6b7280';
-      icon.innerHTML = (type === 'success') ? '✓' : (type === 'error') ? '!' : (type === 'warning') ? '!' : (type === 'info') ? 'i' : '…';
-
-      // Content
-      const content = document.createElement('div');
-      content.className = 'flex-1 text-sm leading-snug';
-      if (typeof message === 'string') content.innerText = message;
-      else content.appendChild(message);
-
-      // Actions
-      const actions = document.createElement('div');
-      actions.className = 'flex items-center gap-2';
-
-      if (options.action && options.action.label) {
-        const btn = document.createElement('button');
-        btn.className = 'text-xs px-2 py-1 rounded-md border border-transparent hover:border-chromaAccent/40';
-        btn.style.background = 'transparent';
-        btn.style.color = 'var(--accent, #ff006e)';
-        btn.innerText = options.action.label;
-        btn.addEventListener('click', (ev) => {
-          try { options.action.onClick && options.action.onClick(ev); } catch(e) { console.error(e); }
-        });
-        actions.appendChild(btn);
-      }
-
-      // Close button
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'text-xs text-chromaBorder/60 hover:text-chromaText';
-      closeBtn.innerText = '✕';
-      closeBtn.title = 'Dismiss';
-      closeBtn.addEventListener('click', () => dismiss());
-
-      // Build
-      t.appendChild(icon);
-      t.appendChild(content);
-      t.appendChild(actions);
-      t.appendChild(closeBtn);
-
-      // Progress toasts should show indicator
-      let progressElem = null;
-      if (type === 'progress') {
-        progressElem = document.createElement('div');
-        progressElem.className = 'w-full h-1 mt-2 rounded bg-neutral-700 overflow-hidden';
-        const bar = document.createElement('div');
-        bar.style.width = '0%';
-        bar.style.height = '100%';
-        bar.style.background = 'linear-gradient(90deg, rgba(255,0,110,0.9), rgba(255,100,150,0.9))';
-        progressElem.appendChild(bar);
-        content.appendChild(progressElem);
-        // expose method to update progress with toastHandle.update(percent)
-      }
-
-      // Insert
-      container.prepend(t);
-
-      // Auto dismiss unless progress
-      let autoTimer = null;
-      if (type !== 'progress') {
-        autoTimer = setTimeout(() => dismiss(), dur);
-      }
-
-      // Dismiss function
-      function dismiss() {
-        if (!t) return;
-        t.style.animation = 'toast-out 180ms ease';
-        setTimeout(() => {
-          try { t.remove(); } catch(e) {}
-        }, 180);
-        if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
-      }
-
-      // Return handle
-      const handle = {
-        id,
-        dismiss,
-        update: (opts = {}) => {
-          if (opts.message) {
-            if (typeof opts.message === 'string') content.innerText = opts.message;
-            else { content.innerHTML = ''; content.appendChild(opts.message); }
-          }
-          if (opts.progress !== undefined && progressElem) {
-            const bar = progressElem.firstElementChild;
-            bar.style.width = Math.max(0, Math.min(100, opts.progress)) + '%';
-          }
-        }
-      };
-
-      return handle;
-    }
-
-    // Expose globally (non-conflicting name)
-    window.showToast = showToast;
-
-    // Example usage hooks for app: (left commented so it doesn't spam)
-    // const t = showToast('info','Processing started',{ duration:2000 });
-    // const p = showToast('progress','Uploading...', { duration: 0 });
-    // setTimeout(()=> p.update({progress:40}), 500);
-
-  })();
-</script>
-
 </body>
 </html>
