@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey v4.3 (Interactive Tag)</title>
+    <title>ChromaKey v4.4 (Eyedropper)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -130,13 +130,13 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 15px;
-            padding-bottom: 100px; /* Space for popups */
+            padding-bottom: 100px;
         }
 
         .image-card {
             background: var(--panel);
             border-radius: 6px;
-            overflow: visible; /* Changed to visible for popups */
+            overflow: visible;
             position: relative;
             display: flex;
             flex-direction: column;
@@ -156,8 +156,26 @@
             align-items: center;
             justify-content: center;
             padding: 10px;
-            overflow: hidden; /* Keep image inside */
+            overflow: hidden; 
             border-radius: 6px 6px 0 0;
+            position: relative;
+        }
+
+        /* Styling for the Eyedropper mode */
+        .img-preview.picking-mode {
+            cursor: crosshair;
+            box-shadow: inset 0 0 0 2px var(--accent);
+        }
+        .img-preview.picking-mode::after {
+            content: "Click color to remove";
+            position: absolute;
+            bottom: 5px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            pointer-events: none;
         }
 
         .img-preview img {
@@ -165,6 +183,8 @@
             max-height: 100%;
             object-fit: contain; 
             border: 1px solid #555;
+            /* Disable pointer events on img so click goes to container for easier coordinate math */
+            pointer-events: none; 
         }
 
         .card-actions {
@@ -177,7 +197,6 @@
             position: relative;
         }
         
-        /* --- NEW: Interactive Tag Styles --- */
         .tag {
             font-size: 0.6rem;
             background: #444;
@@ -195,7 +214,7 @@
             filter: brightness(1.2);
         }
 
-        /* --- NEW: Popover Menu Styles --- */
+        /* Popover Menu */
         .popover-menu {
             position: absolute;
             bottom: 100%;
@@ -207,7 +226,7 @@
             z-index: 100;
             display: none;
             flex-direction: column;
-            min-width: 120px;
+            min-width: 140px;
             overflow: hidden;
         }
         .popover-menu.active { display: flex; }
@@ -228,6 +247,13 @@
         .color-dot {
             width: 10px; height: 10px; border-radius: 50%;
             border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Custom icon for eyedropper */
+        .eyedropper-icon {
+            width: 12px; height: 12px;
+            background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
+            background-size: contain;
         }
 
         .icon-btn {
@@ -257,7 +283,7 @@
 </head>
 <body>
 
-    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.3 (Interactive)</small></h1>
+    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.4 (Eyedropper)</small></h1>
 
     <div class="container">
         <div class="controls">
@@ -281,7 +307,6 @@
                 <label for="normalizeObject">Normalize / Center Object</label>
                 <input type="checkbox" id="normalizeObject" checked>
             </div>
-
 
             <div class="control-group">
                 <label>Tolerance <span id="tolVal">50</span></label>
@@ -313,8 +338,6 @@
         </div>
     </div>
 
-    <input type="color" id="globalColorPicker" style="display:none; position:absolute; visibility:hidden;">
-
 <script>
     // --- State ---
     const state = {
@@ -326,7 +349,7 @@
             exportSize: '512',
             normalizeObject: true 
         },
-        activeMenuFileId: null // NEW: Track which menu is open
+        activeMenuFileId: null
     };
 
     const els = {
@@ -342,8 +365,7 @@
         resultsGrid: document.getElementById('resultsGrid'),
         downloadZipBtn: document.getElementById('downloadZipBtn'),
         downloadBatchBtn: document.getElementById('downloadBatchBtn'),
-        statusText: document.getElementById('statusText'),
-        globalColorPicker: document.getElementById('globalColorPicker') // NEW
+        statusText: document.getElementById('statusText')
     };
 
     let processTimeout;
@@ -354,7 +376,6 @@
         bindEvents();
     });
 
-    // Close menus when clicking outside
     window.addEventListener('click', (e) => {
         if (!e.target.closest('.tag') && !e.target.closest('.popover-menu')) {
             closeAllMenus();
@@ -367,7 +388,7 @@
     }
 
     function loadSettings() {
-        const saved = localStorage.getItem('chromaToolSettings_v4.2');
+        const saved = localStorage.getItem('chromaToolSettings_v4.4');
         if (saved) {
             state.settings = { ...state.settings, ...JSON.parse(saved) };
             els.tolerance.value = state.settings.tolerance;
@@ -375,14 +396,13 @@
             els.strokeColor.value = state.settings.strokeColor;
             els.exportSize.value = state.settings.exportSize;
             els.normalizeObject.checked = state.settings.normalizeObject;
-            
             els.tolVal.innerText = state.settings.tolerance;
             els.strokeVal.innerText = state.settings.strokeWidth;
         }
     }
 
     function saveSettings() {
-        localStorage.setItem('chromaToolSettings_v4.2', JSON.stringify(state.settings));
+        localStorage.setItem('chromaToolSettings_v4.4', JSON.stringify(state.settings));
     }
 
     function bindEvents() {
@@ -418,19 +438,6 @@
 
         els.downloadZipBtn.addEventListener('click', downloadAllZip);
         els.downloadBatchBtn.addEventListener('click', downloadAllBatch);
-
-        // Global color picker listener
-        els.globalColorPicker.addEventListener('input', (e) => {
-            if (state.activeMenuFileId) {
-                const fileData = state.files.find(f => f.id === state.activeMenuFileId);
-                if (fileData) {
-                    fileData.manualMode = 'custom';
-                    fileData.customHex = e.target.value;
-                    closeAllMenus();
-                    processImage(fileData);
-                }
-            }
-        });
     }
 
     function handleFiles(fileList) {
@@ -445,11 +452,10 @@
                 originalFile: file, 
                 processedBlob: null, 
                 element: card,
-                manualMode: null, // NEW: Stores override preference
-                customHex: '#ff0000' // NEW: Stores custom color
+                manualMode: null, 
+                customHex: '#ff0000'
             };
 
-            // Bind Tag Click
             const tag = card.querySelector('.tag');
             tag.addEventListener('click', (e) => toggleMenu(e, fileData));
 
@@ -473,41 +479,34 @@
         }, 300);
     }
 
-    // --- NEW: Menu Handling ---
     function toggleMenu(e, fileData) {
         e.stopPropagation();
         const existingMenu = fileData.element.querySelector('.popover-menu');
         
-        // If this menu is already open, close it
         if (existingMenu.classList.contains('active')) {
             existingMenu.classList.remove('active');
             state.activeMenuFileId = null;
             return;
         }
-
-        // Close others
         closeAllMenus();
 
-        // Build Menu HTML
+        // Menu with Eyedropper
         existingMenu.innerHTML = `
             <div class="popover-item" data-mode="green"><div class="color-dot" style="background:#0f0"></div> Green</div>
             <div class="popover-item" data-mode="blue"><div class="color-dot" style="background:#00f"></div> Blue</div>
             <div class="popover-item" data-mode="white"><div class="color-dot" style="background:#fff"></div> White</div>
             <div class="popover-item" data-mode="black"><div class="color-dot" style="background:#000"></div> Black</div>
-            <div class="popover-item" data-mode="custom"><div class="color-dot" style="background:linear-gradient(45deg, red, yellow, blue)"></div> Color Pick...</div>
+            <div class="popover-item" data-mode="picker"><div class="eyedropper-icon"></div> Eyedropper</div>
         `;
 
-        // Bind clicks
         existingMenu.querySelectorAll('.popover-item').forEach(item => {
             item.addEventListener('click', (ev) => {
                 ev.stopPropagation();
                 const mode = item.dataset.mode;
                 
-                if (mode === 'custom') {
-                    // Trigger global color picker
-                    state.activeMenuFileId = fileData.id;
-                    els.globalColorPicker.click(); 
-                    // Note: Menu closes when picker input triggers or user clicks away
+                if (mode === 'picker') {
+                    activateEyedropper(fileData);
+                    closeAllMenus();
                 } else {
                     fileData.manualMode = mode;
                     closeAllMenus();
@@ -520,6 +519,95 @@
         state.activeMenuFileId = fileData.id;
     }
 
+    // --- Eyedropper Logic ---
+    function activateEyedropper(fileData) {
+        const previewDiv = fileData.element.querySelector('.img-preview');
+        const imgEl = previewDiv.querySelector('img');
+
+        // 1. Temporarily revert to ORIGINAL image so user can see background
+        imgEl.src = URL.createObjectURL(fileData.originalFile);
+        
+        // 2. Set UI State
+        previewDiv.classList.add('picking-mode');
+
+        // 3. One-time Click Listener
+        const clickHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent opening file dialog if bubbling
+            
+            // Cleanup UI
+            previewDiv.classList.remove('picking-mode');
+            
+            // Calculate pixel position
+            const rect = imgEl.getBoundingClientRect();
+            
+            // Check if click is actually on the image (due to object-fit: contain)
+            // But since we use object-fit:contain, the img element spans the full div usually.
+            // We need to draw the image to a canvas to read pixel data.
+            
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                // Math to map DOM click (x,y) to Image (naturalX, naturalY)
+                // This is tricky with object-fit: contain.
+                // Simplified approach: Calculate Aspect Ratios
+                
+                const containerRatio = rect.width / rect.height;
+                const imgRatio = img.width / img.height;
+                
+                let renderWidth, renderHeight, renderLeft, renderTop;
+
+                if (imgRatio > containerRatio) {
+                    // Image constrained by width
+                    renderWidth = rect.width;
+                    renderHeight = rect.width / imgRatio;
+                    renderLeft = 0;
+                    renderTop = (rect.height - renderHeight) / 2;
+                } else {
+                    // Image constrained by height
+                    renderHeight = rect.height;
+                    renderWidth = rect.height * imgRatio;
+                    renderTop = 0;
+                    renderLeft = (rect.width - renderWidth) / 2;
+                }
+
+                // Click coordinates relative to the image rendering box
+                const clientX = e.clientX - rect.left;
+                const clientY = e.clientY - rect.top;
+
+                const relativeX = clientX - renderLeft;
+                const relativeY = clientY - renderTop;
+
+                // Check bounds (did they click black bars?)
+                if (relativeX >= 0 && relativeX <= renderWidth && relativeY >= 0 && relativeY <= renderHeight) {
+                    const trueX = Math.floor((relativeX / renderWidth) * img.width);
+                    const trueY = Math.floor((relativeY / renderHeight) * img.height);
+                    
+                    const p = ctx.getImageData(trueX, trueY, 1, 1).data;
+                    const hex = "#" + ((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1);
+                    
+                    // Apply Selection
+                    fileData.manualMode = 'custom';
+                    fileData.customHex = hex;
+                    
+                    // Reprocess
+                    processImage(fileData);
+                } else {
+                    // User clicked the padding/black bars - Cancel or Reprocess original
+                    processImage(fileData);
+                }
+            };
+            img.src = URL.createObjectURL(fileData.originalFile);
+        };
+
+        // Add listener to the DIV container, not the IMG (because img has pointer-events:none)
+        previewDiv.addEventListener('click', clickHandler, { once: true });
+    }
 
     // --- Core Processing ---
 
@@ -540,21 +628,20 @@
             const width = canvas.width;
             const height = canvas.height;
 
-            // 1. DETERMINE MODE (Auto or Manual)
+            // 1. DETERMINE MODE
             let mode = 'green';
             let customRGB = null;
 
             if (fileData.manualMode) {
                 mode = fileData.manualMode;
                 if (mode === 'custom' && fileData.customHex) {
-                    // Convert hex to rgb
                     const r = parseInt(fileData.customHex.substr(1,2), 16);
                     const g = parseInt(fileData.customHex.substr(3,2), 16);
                     const b = parseInt(fileData.customHex.substr(5,2), 16);
                     customRGB = { r, g, b };
                 }
             } else {
-                // Auto Detection Logic
+                // Auto Detection
                 let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
                 for (let i = 0; i < data.length; i+=32) { 
                     if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
@@ -577,7 +664,6 @@
             if (mode === 'custom' && customRGB) {
                 tag.innerText = 'Custom';
                 tag.style.background = fileData.customHex;
-                // calculate contrast for text color
                 const yiq = ((customRGB.r*299)+(customRGB.g*587)+(customRGB.b*114))/1000;
                 tag.style.color = (yiq >= 128) ? 'black' : 'white';
             } else {
@@ -585,7 +671,6 @@
                 tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : (mode === 'white') ? '#eee' : '#222';
                 tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
             }
-
 
             // 2. REMOVE BACKGROUND
             const tol = state.settings.tolerance;
@@ -608,19 +693,19 @@
                 }
                 else if (mode === 'custom' && customRGB) {
                     // Euclidean distance for custom color
-                    // We multiply tolerance by 1.5 to make it feel similar to RGB diff sliders
                     const dist = Math.sqrt(
                         Math.pow(r - customRGB.r, 2) + 
                         Math.pow(g - customRGB.g, 2) + 
                         Math.pow(b - customRGB.b, 2)
                     );
-                    if (dist < tol * 2.5) isBackground = true; 
+                    // Standardize tolerance logic for custom pick
+                    if (dist < tol * 1.5) isBackground = true; 
                 }
 
                 if (isBackground) data[i+3] = 0; 
             }
 
-            // 3. CLEAN UP (Despeckle)
+            // 3. CLEAN UP
             removeIslands(data, width, height, 100);
 
             // 4. STROKE
@@ -630,13 +715,11 @@
 
             ctx.putImageData(imageData, 0, 0);
 
-            // 5. NORMALIZE / RESIZE
+            // 5. RESIZE / NORMALIZE
             let finalCanvas = document.createElement('canvas');
             let exportSize = parseInt(state.settings.exportSize);
             
-            if (isNaN(exportSize)) {
-                exportSize = Math.max(width, height); 
-            }
+            if (isNaN(exportSize)) exportSize = Math.max(width, height); 
             
             finalCanvas.width = exportSize;
             finalCanvas.height = exportSize;
@@ -693,7 +776,7 @@
         img.src = URL.createObjectURL(fileData.originalFile);
     }
 
-    // --- Helpers (Unchanged Logic, mostly) ---
+    // --- Helpers ---
 
     function getContentBounds(data, w, h) {
         let minX = w, minY = h, maxX = 0, maxY = 0;
@@ -724,7 +807,6 @@
                     stack.push(idx);
                     visited[idx] = 1;
                     const component = [idx];
-                    
                     while(stack.length > 0) {
                         const curr = stack.pop();
                         const neighbors = [1, -1, width, -width];
@@ -755,7 +837,6 @@
         const sb = parseInt(hexColor.substr(5,2), 16);
 
         for (let i = 0; i < width * height; i++) grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
-
         for (let i = 0; i < width*height; i++) {
             if (grid[i] > 0) {
                 const x = i % width;
@@ -780,7 +861,6 @@
                 grid[i] = minD;
             }
         }
-
         for (let i = 0; i < width * height; i++) {
             const dist = grid[i];
             if (dist > 0 && dist <= strokeWidth + 0.5) {
