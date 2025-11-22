@@ -2,19 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey v4.2 (Auto-Icon)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff006e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ChromaKey Pro v5.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        const manifest = {
+            "name": "ChromaKey Pro",
+            "short_name": "ChromaKey",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#1e1e24",
+            "theme_color": "#ff006e",
+            "icons": [{
+                "src": "https://cdn-icons-png.flaticon.com/512/3991/3991843.png", 
+                "sizes": "512x512", "type": "image/png"
+            }]
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+    </script>
 
     <style>
         :root {
             --bg: #1e1e24;
             --panel: #2b2b36;
             --text: #e1e1e6;
-            --accent: #ff006e; /* Changed accent to Pink to signify v4.2 */
+            --accent: #ff006e;
             --border: #444;
             --input-bg: #1a1a20;
+            --success: #2ecc71;
         }
 
         body {
@@ -29,14 +55,34 @@
             min-height: 100vh;
         }
 
+        /* PWA Install Button */
+        #pwaInstallBtn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-10px);} 60% {transform: translateY(-5px);} }
+
         h1 { margin-bottom: 20px; font-weight: 300; letter-spacing: 1px; }
 
         .container {
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 320px 1fr;
             gap: 20px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1400px;
         }
 
         /* Controls Panel */
@@ -48,115 +94,115 @@
             height: fit-content;
             position: sticky;
             top: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
-        .control-group { margin-bottom: 20px; }
-        .control-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: #aaa; }
-        .control-group span { float: right; color: var(--accent); font-weight: bold; }
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #888;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #ccc; }
+        .control-group span { float: right; color: var(--accent); font-weight: bold; font-size: 0.85rem; }
 
         input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); }
-        input[type="color"] { width: 100%; height: 40px; border: none; cursor: pointer; background: none; }
+        input[type="color"] { width: 100%; height: 35px; border: none; cursor: pointer; background: none; padding: 0; }
         
         select {
-            width: 100%;
-            padding: 10px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            color: var(--text);
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
+            width: 100%; padding: 8px; background: var(--input-bg);
+            border: 1px solid var(--border); color: var(--text);
+            border-radius: 4px; font-size: 0.9rem; cursor: pointer;
         }
-        select:focus { outline: 2px solid var(--accent); border-color: transparent; }
-        
-        /* New Checkbox Style */
-        .checkbox-group {
+
+        /* Toggles & Checkboxes */
+        .toggle-row {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 10px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
             justify-content: space-between;
+            margin-bottom: 10px;
+            background: var(--input-bg);
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
         }
-        .checkbox-group label {
-            margin-bottom: 0;
-            color: var(--text);
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: var(--accent);
-            cursor: pointer;
-        }
+        .toggle-row label { margin: 0; cursor: pointer; font-size: 0.9rem; }
+        .toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
 
-
+        /* Manual Color Picker UI */
+        .color-picker-ui {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .eyedropper-btn {
+            flex: 1;
+            background: #444;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .eyedropper-btn.active { background: var(--accent); border-color: var(--accent); }
+        
         .dropzone {
             border: 2px dashed var(--border);
             border-radius: 8px;
-            padding: 30px;
+            padding: 20px;
             text-align: center;
             cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-            margin-bottom: 20px;
-        }
-        .dropzone:hover, .dropzone.dragover {
-            border-color: var(--accent);
-            background: rgba(255, 0, 110, 0.1);
-        }
-        .dropzone p { margin: 0; color: #888; pointer-events: none; }
-
-        /* Results Grid */
-        .results-area { display: flex; flex-direction: column; }
-
-        .batch-actions {
-            display: flex;
-            justify-content: space-between;
+            transition: 0.2s;
             margin-bottom: 15px;
-            align-items: center;
+        }
+        .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(255, 0, 110, 0.1); }
+        .dropzone p { margin: 0; color: #888; font-size: 0.9rem; pointer-events: none; }
+
+        /* Results */
+        .results-area { display: flex; flex-direction: column; }
+        
+        .batch-actions {
+            display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;
+            background: var(--panel); padding: 10px 20px; border-radius: 6px;
         }
         
-        .batch-buttons {
-            display: flex;
-            gap: 10px; 
-        }
-
         .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            transition: opacity 0.2s;
+            background: var(--accent); color: #fff; border: none; padding: 8px 16px;
+            border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase;
+            font-size: 0.75rem; transition: opacity 0.2s;
         }
-        .btn:hover { opacity: 0.8; }
         .btn:disabled { background: #555; color:#888; cursor: not-allowed; }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px;
         }
 
         .image-card {
-            background: var(--panel);
-            border-radius: 6px;
-            overflow: hidden;
-            position: relative;
-            display: flex;
-            flex-direction: column;
+            background: var(--panel); border-radius: 6px; overflow: hidden;
+            position: relative; display: flex; flex-direction: column;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
         }
+        
+        /* Cursor changes when picking color */
+        body.is-picking .image-card { cursor: crosshair; }
+        body.is-picking .image-card:hover { outline: 2px solid var(--success); }
 
         .img-preview {
-            height: 160px;
+            height: 180px;
             background-image: 
                 linear-gradient(45deg, #333 25%, transparent 25%), 
                 linear-gradient(-45deg, #333 25%, transparent 25%), 
@@ -164,121 +210,127 @@
                 linear-gradient(-45deg, transparent 75%, #333 75%);
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
+            display: flex; align-items: center; justify-content: center; padding: 10px;
         }
 
-        /* Force image to show boundaries clearly */
         .img-preview img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; 
-            border: 1px solid #555; /* Visual guide for the user */
+            max-width: 100%; max-height: 100%; object-fit: contain; 
         }
 
         .card-actions {
-            padding: 8px;
-            display: flex;
-            justify-content: space-between;
-            background: #222;
-            align-items: center;
+            padding: 8px; display: flex; justify-content: space-between;
+            background: #222; align-items: center;
         }
         
-        .tag {
-            font-size: 0.6rem;
-            background: #444;
-            color: #ccc;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-right: 8px;
-            text-transform: uppercase;
-        }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            color: #aaa;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
+        .tag { font-size: 0.6rem; background: #444; color: #ccc; padding: 2px 6px; border-radius: 4px; margin-right: 8px; text-transform: uppercase; }
+        .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.2rem; }
         .icon-btn:hover { color: #fff; }
 
         .processing-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.8rem;
-            display: none;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center;
+            justify-content: center; color: white; font-size: 0.8rem; display: none;
         }
         .processing .processing-overlay { display: flex; }
+
+        @media (max-width: 800px) {
+            .container { grid-template-columns: 1fr; }
+            .controls { position: relative; top: 0; max-height: none; }
+        }
     </style>
 </head>
 <body>
 
-    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.2 (Trim & Center)</small></h1>
+    <button id="pwaInstallBtn">Install App</button>
+
+    <h1>ChromaKey <span style="color:var(--accent)">Pro</span> <small style="font-size:0.5em; color:#888">v5.0 (PWA)</small></h1>
 
     <div class="container">
         <div class="controls">
+            
             <div class="dropzone" id="dropzone">
                 <p>Drag & Drop Images<br>or Click to Browse</p>
                 <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
             </div>
 
+            <div class="section-title">Color Strategy</div>
+
             <div class="control-group">
-                <label>Export Size (Required for Icons)</label>
-                <select id="exportSize">
-                    <option value="512">512 x 512</option>
-                    <option value="256">256 x 256</option>
-                    <option value="128">128 x 128</option>
-                    <option value="64">64 x 64</option>
-                    <option value="original">Original (Disable Norm)</option>
-                </select>
-            </div>
-            
-            <div class="checkbox-group">
-                <label for="normalizeObject">Normalize / Center Object</label>
-                <input type="checkbox" id="normalizeObject" checked>
+                <label>Key Color Source</label>
+                <div class="color-picker-ui">
+                    <select id="keyMode">
+                        <option value="auto">Auto-Detect (Best Guess)</option>
+                        <option value="manual">Manual Color</option>
+                    </select>
+                    <input type="color" id="manualColorInput" value="#00ff00" title="Select Color">
+                </div>
+                <button id="eyedropperBtn" class="eyedropper-btn" disabled>
+                    <span style="font-size:1.2em">⌖</span> Pick from Image
+                </button>
+                <div style="font-size:0.75rem; color:#777; margin-top:5px;">
+                    To pick: Click button, then click any loaded image.
+                </div>
             </div>
 
+            <div class="control-group">
+                <label>Detection Method</label>
+                <select id="algoMethod">
+                    <option value="rgb">RGB (Standard)</option>
+                    <option value="hsl">HSL (Better Accuracy)</option>
+                </select>
+            </div>
 
             <div class="control-group">
                 <label>Tolerance / Threshold <span id="tolVal">50</span></label>
                 <input type="range" id="tolerance" min="1" max="150" value="50">
             </div>
 
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+            <div class="section-title">Refinement</div>
+
+            <div class="toggle-row">
+                <label for="useDespill" title="Removes green/blue reflections from edges">Active Despill (De-haze)</label>
+                <input type="checkbox" id="useDespill">
+            </div>
+            
+            <div class="control-group" id="despillStrengthGroup" style="opacity: 0.5; pointer-events: none;">
+                <label>Despill Strength <span id="dspVal">0.7</span></label>
+                <input type="range" id="despillStrength" min="0" max="1" step="0.1" value="0.7">
+            </div>
+
+            <div class="section-title">Geometry & Export</div>
+
+            <div class="toggle-row">
+                <label for="normalizeObject">Trim & Center Object</label>
+                <input type="checkbox" id="normalizeObject" checked>
+            </div>
 
             <div class="control-group">
-                <label>Stroke Width (px) <span id="strokeVal">10</span></label>
-                <input type="range" id="strokeWidth" min="0" max="50" value="10">
+                <label>Export Size</label>
+                <select id="exportSize">
+                    <option value="512">512 x 512</option>
+                    <option value="256">256 x 256</option>
+                    <option value="128">128 x 128</option>
+                    <option value="original">Original Size</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Stroke Width (px) <span id="strokeVal">0</span></label>
+                <input type="range" id="strokeWidth" min="0" max="50" value="0">
             </div>
 
             <div class="control-group">
                 <label>Stroke Color</label>
-                <input type="color" id="strokeColor" value="#000000">
-            </div>
-            
-            <div style="margin-top:20px; font-size: 0.8rem; color: #777; line-height: 1.4;">
-                <strong>How Normalization works now:</strong>
-                <br>1. Removes background.
-                <br>2. Trims empty transparent space around object.
-                <br>3. Scales object to fit the Export Size (with padding).
-                <br>4. Centers object perfectly.
+                <input type="color" id="strokeColor" value="#ffffff">
             </div>
         </div>
 
         <div class="results-area">
             <div class="batch-actions">
-                <span id="statusText">0 images loaded</span>
-                <div class="batch-buttons">
-                    <button id="downloadBatchBtn" class="btn" disabled>Download All (Files)</button>
-                    <button id="downloadZipBtn" class="btn" disabled>Download All (ZIP)</button>
+                <span id="statusText" style="font-size:0.9rem; color:#aaa">0 images loaded</span>
+                <div style="display:flex; gap:10px;">
+                    <button id="downloadBatchBtn" class="btn" disabled>Download Files</button>
+                    <button id="downloadZipBtn" class="btn" disabled>Download ZIP</button>
                 </div>
             </div>
             <div class="grid" id="resultsGrid"></div>
@@ -286,62 +338,133 @@
     </div>
 
 <script>
-    // --- State ---
+    // --- Service Worker Registration for PWA ---
+    if ('serviceWorker' in navigator) {
+        const swCode = `
+            self.addEventListener('install', (e) => {
+                e.waitUntil(caches.open('chroma-v5').then((cache) => cache.addAll(['./'])));
+            });
+            self.addEventListener('fetch', (e) => {
+                e.respondWith(caches.match(e.request).then((response) => response || fetch(e.request)));
+            });
+        `;
+        const swBlob = new Blob([swCode], {type: 'application/javascript'});
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob))
+            .then(() => console.log('Service Worker Registered'));
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('pwaInstallBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+        installBtn.addEventListener('click', () => {
+            installBtn.style.display = 'none';
+            deferredPrompt.prompt();
+        });
+    }
+
+    // --- App State ---
     const state = {
         files: [], 
+        isPickingColor: false,
         settings: { 
             tolerance: 50, 
-            strokeWidth: 10, 
-            strokeColor: '#000000',
+            strokeWidth: 0, 
+            strokeColor: '#ffffff',
             exportSize: '512',
-            normalizeObject: true 
+            normalizeObject: true,
+            keyMode: 'auto', // auto, manual
+            manualColor: {r:0, g:255, b:0},
+            algoMethod: 'rgb', // rgb, hsl
+            useDespill: false,
+            despillStrength: 0.7
         }
     };
 
+    // --- UI Elements ---
     const els = {
         dropzone: document.getElementById('dropzone'),
         fileInput: document.getElementById('fileInput'),
-        exportSize: document.getElementById('exportSize'),
-        normalizeObject: document.getElementById('normalizeObject'),
+        // Controls
+        keyMode: document.getElementById('keyMode'),
+        manualColorInput: document.getElementById('manualColorInput'),
+        eyedropperBtn: document.getElementById('eyedropperBtn'),
+        algoMethod: document.getElementById('algoMethod'),
         tolerance: document.getElementById('tolerance'),
+        useDespill: document.getElementById('useDespill'),
+        despillStrength: document.getElementById('despillStrength'),
+        despillGroup: document.getElementById('despillStrengthGroup'),
+        normalizeObject: document.getElementById('normalizeObject'),
+        exportSize: document.getElementById('exportSize'),
         strokeWidth: document.getElementById('strokeWidth'),
         strokeColor: document.getElementById('strokeColor'),
+        // Labels
         tolVal: document.getElementById('tolVal'),
+        dspVal: document.getElementById('dspVal'),
         strokeVal: document.getElementById('strokeVal'),
+        // Output
         resultsGrid: document.getElementById('resultsGrid'),
+        statusText: document.getElementById('statusText'),
         downloadZipBtn: document.getElementById('downloadZipBtn'),
-        downloadBatchBtn: document.getElementById('downloadBatchBtn'),
-        statusText: document.getElementById('statusText')
+        downloadBatchBtn: document.getElementById('downloadBatchBtn')
     };
 
     let processTimeout;
 
-    // --- Init ---
+    // --- Initialization ---
     window.addEventListener('DOMContentLoaded', () => {
         loadSettings();
         bindEvents();
+        updateUiState();
     });
 
     function loadSettings() {
-        const saved = localStorage.getItem('chromaToolSettings_v4.2');
+        const saved = localStorage.getItem('chroma_v5_settings');
         if (saved) {
-            state.settings = { ...state.settings, ...JSON.parse(saved) };
+            const parsed = JSON.parse(saved);
+            state.settings = { ...state.settings, ...parsed };
+            
+            // Apply to UI
             els.tolerance.value = state.settings.tolerance;
             els.strokeWidth.value = state.settings.strokeWidth;
             els.strokeColor.value = state.settings.strokeColor;
             els.exportSize.value = state.settings.exportSize;
             els.normalizeObject.checked = state.settings.normalizeObject;
+            els.keyMode.value = state.settings.keyMode;
+            els.algoMethod.value = state.settings.algoMethod;
+            els.useDespill.checked = state.settings.useDespill;
+            els.despillStrength.value = state.settings.despillStrength;
+            els.manualColorInput.value = rgbToHex(state.settings.manualColor.r, state.settings.manualColor.g, state.settings.manualColor.b);
             
-            els.tolVal.innerText = state.settings.tolerance;
-            els.strokeVal.innerText = state.settings.strokeWidth;
+            updateLabels();
         }
     }
 
     function saveSettings() {
-        localStorage.setItem('chromaToolSettings_v4.2', JSON.stringify(state.settings));
+        localStorage.setItem('chroma_v5_settings', JSON.stringify(state.settings));
+    }
+
+    function updateLabels() {
+        els.tolVal.innerText = state.settings.tolerance;
+        els.strokeVal.innerText = state.settings.strokeWidth;
+        els.dspVal.innerText = state.settings.despillStrength;
+    }
+
+    function updateUiState() {
+        // Toggle visibility/enabled based on settings
+        const isManual = els.keyMode.value === 'manual';
+        els.manualColorInput.disabled = !isManual;
+        els.eyedropperBtn.disabled = !isManual;
+        
+        const isDespill = els.useDespill.checked;
+        els.despillGroup.style.opacity = isDespill ? '1' : '0.5';
+        els.despillGroup.style.pointerEvents = isDespill ? 'auto' : 'none';
     }
 
     function bindEvents() {
+        // File Handling
         els.dropzone.addEventListener('click', () => els.fileInput.click());
         els.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropzone.classList.add('dragover'); });
         els.dropzone.addEventListener('dragleave', () => els.dropzone.classList.remove('dragover'));
@@ -352,29 +475,100 @@
         });
         els.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-        const updateHandler = () => {
-            state.settings.tolerance = parseInt(els.tolerance.value);
-            state.settings.strokeWidth = parseInt(els.strokeWidth.value);
-            state.settings.strokeColor = els.strokeColor.value;
-            state.settings.exportSize = els.exportSize.value;
-            state.settings.normalizeObject = els.normalizeObject.checked;
-            
-            els.tolVal.innerText = state.settings.tolerance;
-            els.strokeVal.innerText = state.settings.strokeWidth;
-            
+        // Controls Change
+        const triggerUpdate = () => {
+            readSettingsFromUi();
+            updateUiState();
+            updateLabels();
             saveSettings();
             triggerBatchProcess();
         };
 
-        els.tolerance.addEventListener('input', updateHandler);
-        els.strokeWidth.addEventListener('input', updateHandler);
-        els.strokeColor.addEventListener('input', updateHandler);
-        els.exportSize.addEventListener('change', updateHandler);
-        els.normalizeObject.addEventListener('change', updateHandler); 
+        [
+            els.tolerance, els.strokeWidth, els.strokeColor, els.exportSize, 
+            els.normalizeObject, els.algoMethod, els.useDespill, els.despillStrength,
+            els.keyMode
+        ].forEach(el => el.addEventListener('change', triggerUpdate));
+        
+        [els.tolerance, els.strokeWidth, els.despillStrength].forEach(el => el.addEventListener('input', updateLabels));
 
+        // Manual Color Input
+        els.manualColorInput.addEventListener('input', (e) => {
+            const rgb = hexToRgb(e.target.value);
+            state.settings.manualColor = rgb;
+            triggerUpdate();
+        });
+
+        // Eyedropper
+        els.eyedropperBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleEyedropper();
+        });
+
+        // Downloads
         els.downloadZipBtn.addEventListener('click', downloadAllZip);
         els.downloadBatchBtn.addEventListener('click', downloadAllBatch);
     }
+
+    function readSettingsFromUi() {
+        state.settings.tolerance = parseInt(els.tolerance.value);
+        state.settings.strokeWidth = parseInt(els.strokeWidth.value);
+        state.settings.strokeColor = els.strokeColor.value;
+        state.settings.exportSize = els.exportSize.value;
+        state.settings.normalizeObject = els.normalizeObject.checked;
+        state.settings.keyMode = els.keyMode.value;
+        state.settings.algoMethod = els.algoMethod.value;
+        state.settings.useDespill = els.useDespill.checked;
+        state.settings.despillStrength = parseFloat(els.despillStrength.value);
+    }
+
+    // --- Eyedropper Logic ---
+    function toggleEyedropper() {
+        state.isPickingColor = !state.isPickingColor;
+        if (state.isPickingColor) {
+            document.body.classList.add('is-picking');
+            els.eyedropperBtn.classList.add('active');
+            els.eyedropperBtn.innerHTML = "Click an Image...";
+        } else {
+            document.body.classList.remove('is-picking');
+            els.eyedropperBtn.classList.remove('active');
+            els.eyedropperBtn.innerHTML = "<span style='font-size:1.2em'>⌖</span> Pick from Image";
+        }
+    }
+
+    function handleImageClick(e, fileData) {
+        if (!state.isPickingColor) return;
+        
+        // We need to sample the original image, not the processed one.
+        // Create a temporary canvas to read the pixel.
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Map click coordinates to image coordinates
+            const rect = e.target.getBoundingClientRect();
+            const xRatio = e.offsetX / rect.width;
+            const yRatio = e.offsetY / rect.height;
+            const px = Math.floor(xRatio * img.width);
+            const py = Math.floor(yRatio * img.height);
+            
+            const p = ctx.getImageData(px, py, 1, 1).data;
+            state.settings.manualColor = {r: p[0], g: p[1], b: p[2]};
+            els.manualColorInput.value = rgbToHex(p[0], p[1], p[2]);
+            
+            toggleEyedropper(); // Turn off
+            readSettingsFromUi(); // Ensure state is synced
+            triggerBatchProcess(); // Reprocess all
+        };
+        img.src = URL.createObjectURL(fileData.originalFile);
+    }
+
+
+    // --- File Handling ---
 
     function handleFiles(fileList) {
         Array.from(fileList).forEach(file => {
@@ -384,6 +578,10 @@
             els.resultsGrid.appendChild(card);
 
             const fileData = { id, originalFile: file, processedBlob: null, element: card };
+            
+            // Attach click for eyedropper
+            card.querySelector('.img-preview').addEventListener('click', (e) => handleImageClick(e, fileData));
+            
             state.files.push(fileData);
             processImage(fileData);
         });
@@ -401,10 +599,10 @@
         clearTimeout(processTimeout);
         processTimeout = setTimeout(() => {
             state.files.forEach(processImage);
-        }, 300);
+        }, 100);
     }
 
-    // --- Core Processing ---
+    // --- CORE IMAGE PROCESSING ---
 
     function processImage(fileData) {
         const card = fileData.element;
@@ -412,155 +610,213 @@
 
         const img = new Image();
         img.onload = () => {
-            // 1. WORK AT FULL RESOLUTION INITIALLY
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
-
             ctx.drawImage(img, 0, 0);
+            
             let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             let data = imageData.data;
-            const width = canvas.width;
-            const height = canvas.height;
+            const w = canvas.width;
+            const h = canvas.height;
 
-            // 2. DETECT BACKGROUND (Sampled)
-            let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
-            for (let i = 0; i < data.length; i+=32) { 
-                if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
-                    const r = data[i], g = data[i+1], b = data[i+2];
-                    const bright = (r+g+b)/3;
-                    if (bright < 40) blackScore++; 
-                    else if (bright > 230) whiteScore++; 
-                    else if (g > r && g > b) gScore++; 
-                    else if (b > r && b > g) bScore++; 
-                }
+            // 1. DETERMINE KEY COLOR
+            let targetR, targetG, targetB;
+            let mode = 'green'; // Used for simple RGB logic
+
+            if (state.settings.keyMode === 'manual') {
+                targetR = state.settings.manualColor.r;
+                targetG = state.settings.manualColor.g;
+                targetB = state.settings.manualColor.b;
+                // Guess mode for Despill logic
+                if (targetB > targetG && targetB > targetR) mode = 'blue';
+                else mode = 'green';
+            } else {
+                // Auto-detect
+                const sample = detectDominantColor(data, w, h);
+                targetR = sample.r; targetG = sample.g; targetB = sample.b;
+                mode = sample.mode;
+                // Update UI tag
+                const tag = card.querySelector('.tag');
+                tag.innerText = mode;
+                tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : '#444';
+                tag.style.color = '#000';
             }
-            let mode = 'green';
-            let maxScore = Math.max(gScore, bScore, blackScore, whiteScore);
-            if (maxScore === bScore) mode = 'blue';
-            else if (maxScore === blackScore) mode = 'black';
-            else if (maxScore === whiteScore) mode = 'white';
 
-            // Tag Update
-            const tag = card.querySelector('.tag');
-            tag.innerText = mode;
-            tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : (mode === 'white') ? '#eee' : '#222';
-            tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
+            // Pre-calc HSL if needed
+            let targetH, targetS, targetL;
+            if (state.settings.algoMethod === 'hsl') {
+                [targetH, targetS, targetL] = rgbToHsl(targetR, targetG, targetB);
+            }
 
-            // 3. REMOVE BACKGROUND
+            // 2. REMOVE BACKGROUND LOOP
             const tol = state.settings.tolerance;
+            const useHsl = state.settings.algoMethod === 'hsl';
+            const useDespill = state.settings.useDespill;
+            const despillStr = state.settings.despillStrength;
+
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i], g = data[i+1], b = data[i+2];
                 let isBackground = false;
-                if (mode === 'green') { if (g > r + tol && g > b + tol) isBackground = true; } 
-                else if (mode === 'blue') { if (b > r + tol && b > g + tol) isBackground = true; }
-                else if (mode === 'black') { if (r < tol && g < tol && b < tol) isBackground = true; }
-                else if (mode === 'white') { if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; }
-                if (isBackground) data[i+3] = 0; 
+
+                // A. DETECTION
+                if (useHsl) {
+                    // HSL Method
+                    const [pixH, pixS, pixL] = rgbToHsl(r, g, b);
+                    // Distance logic: Hue is circular (0-360)
+                    let hDist = Math.abs(pixH - targetH);
+                    if (hDist > 180) hDist = 360 - hDist;
+                    
+                    // Check hue proximity AND saturation presence
+                    if (hDist < (tol * 0.8) && pixS > 0.15 && pixL > 0.15 && pixL < 0.95) {
+                        isBackground = true;
+                    }
+                } else {
+                    // RGB Method
+                    if (state.settings.keyMode === 'manual') {
+                        // Euclidean distance for manual
+                        const dist = Math.sqrt(
+                            Math.pow(r - targetR, 2) + 
+                            Math.pow(g - targetG, 2) + 
+                            Math.pow(b - targetB, 2)
+                        );
+                        if (dist < tol * 1.5) isBackground = true; 
+                    } else {
+                        // Classic logic for Auto (very fast)
+                        if (mode === 'green') { if (g > r + tol && g > b + tol) isBackground = true; } 
+                        else if (mode === 'blue') { if (b > r + tol && b > g + tol) isBackground = true; }
+                        else if (mode === 'black') { if (r < tol && g < tol && b < tol) isBackground = true; }
+                        else if (mode === 'white') { if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; }
+                    }
+                }
+
+                if (isBackground) {
+                    data[i+3] = 0; // Alpha = 0
+                } else if (useDespill && data[i+3] > 0) {
+                    // 3. DESPILL (Only on visible pixels)
+                    // Basic logic: If green/blue is dominant, clamp it to the average of others
+                    if (mode === 'green' && g > b && g > r) {
+                        // Calculate what green 'should' be (avg of R and B)
+                        const avg = (r + b) / 2;
+                        if (g > avg) {
+                            // Blend between original G and clamped Avg based on strength
+                            data[i+1] = g * (1 - despillStr) + avg * despillStr;
+                        }
+                    } else if (mode === 'blue' && b > g && b > r) {
+                        const avg = (r + g) / 2;
+                        if (b > avg) {
+                            data[i+2] = b * (1 - despillStr) + avg * despillStr;
+                        }
+                    }
+                }
             }
 
-            // 4. CLEAN UP (Despeckle)
-            removeIslands(data, width, height, 100);
+            // 4. CLEANUP (Despeckle)
+            removeIslands(data, w, h, 100);
 
             // 5. STROKE
             if (state.settings.strokeWidth > 0) {
-                applyStroke(data, width, height, state.settings.strokeWidth, state.settings.strokeColor);
+                applyStroke(data, w, h, state.settings.strokeWidth, state.settings.strokeColor);
             }
 
-            // COMMIT PIXELS TO CANVAS FOR RESAMPLING
             ctx.putImageData(imageData, 0, 0);
 
-            // 6. NORMALIZE / RESIZE (The Fix)
-            let finalCanvas = document.createElement('canvas');
-            let exportSize = parseInt(state.settings.exportSize);
-            
-            // Handle 'original' or invalid size
-            if (isNaN(exportSize)) {
-                exportSize = Math.max(width, height); // Fallback to max dimension
-            }
-            
-            finalCanvas.width = exportSize;
-            finalCanvas.height = exportSize;
-            const fCtx = finalCanvas.getContext('2d');
-            fCtx.imageSmoothingEnabled = true;
-            fCtx.imageSmoothingQuality = 'high';
+            // 6. NORMALIZE / RESIZE
+            finalizeExport(canvas, ctx, fileData, data, w, h);
 
-            if (state.settings.normalizeObject) {
-                // A. FIND BOUNDING BOX OF NON-TRANSPARENT PIXELS
-                const bounds = getContentBounds(data, width, height);
-                
-                if (bounds.w > 0 && bounds.h > 0) {
-                    // B. CALCULATE SCALE TO FIT
-                    const padding = exportSize * 0.1; // 10% padding
-                    const availableW = exportSize - (padding * 2);
-                    const availableH = exportSize - (padding * 2);
-
-                    const scale = Math.min(availableW / bounds.w, availableH / bounds.h);
-                    
-                    const renderW = bounds.w * scale;
-                    const renderH = bounds.h * scale;
-                    
-                    // C. CENTER
-                    const renderX = (exportSize - renderW) / 2;
-                    const renderY = (exportSize - renderH) / 2;
-
-                    // Draw cropped area from source canvas to new square canvas
-                    fCtx.drawImage(
-                        canvas, 
-                        bounds.x, bounds.y, bounds.w, bounds.h, // Source Trim
-                        renderX, renderY, renderW, renderH      // Dest Center
-                    );
-                } else {
-                    // Empty image
-                    fCtx.clearRect(0,0, exportSize, exportSize);
-                }
-            } else {
-                // Standard Stretch/Resize (Old behavior)
-                if (state.settings.exportSize === 'original') {
-                    finalCanvas = canvas; // Keep original
-                } else {
-                    fCtx.drawImage(canvas, 0, 0, exportSize, exportSize);
-                }
-            }
-
-            // 7. FINALIZE
-            finalCanvas.toBlob((blob) => {
-                fileData.processedBlob = blob;
-                const url = URL.createObjectURL(blob);
-                const prevContainer = card.querySelector('.img-preview');
-                prevContainer.innerHTML = '';
-                const resImg = new Image();
-                resImg.src = url;
-                prevContainer.appendChild(resImg);
-
-                card.querySelector('.dl-btn').onclick = () => {
-                    saveAs(blob, 'processed_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
-                };
-                card.classList.remove('processing');
-            }, 'image/png');
         };
         img.src = URL.createObjectURL(fileData.originalFile);
     }
 
-    // Helper: Find strict bounding box of alpha > 0
-    function getContentBounds(data, w, h) {
-        let minX = w, minY = h, maxX = 0, maxY = 0;
-        let found = false;
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                const alpha = data[(y * w + x) * 4 + 3];
-                if (alpha > 0) {
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                    found = true;
-                }
+    function finalizeExport(canvas, ctx, fileData, data, width, height) {
+        let finalCanvas = document.createElement('canvas');
+        let exportSize = parseInt(state.settings.exportSize);
+        if (isNaN(exportSize)) exportSize = Math.max(width, height);
+        
+        finalCanvas.width = exportSize;
+        finalCanvas.height = exportSize;
+        const fCtx = finalCanvas.getContext('2d');
+        fCtx.imageSmoothingEnabled = true;
+        fCtx.imageSmoothingQuality = 'high';
+
+        if (state.settings.normalizeObject) {
+            const bounds = getContentBounds(data, width, height);
+            if (bounds.w > 0 && bounds.h > 0) {
+                const padding = exportSize * 0.1;
+                const availableW = exportSize - (padding * 2);
+                const availableH = exportSize - (padding * 2);
+                const scale = Math.min(availableW / bounds.w, availableH / bounds.h);
+                const renderW = bounds.w * scale;
+                const renderH = bounds.h * scale;
+                const renderX = (exportSize - renderW) / 2;
+                const renderY = (exportSize - renderH) / 2;
+
+                fCtx.drawImage(canvas, bounds.x, bounds.y, bounds.w, bounds.h, renderX, renderY, renderW, renderH);
             }
+        } else {
+             if (state.settings.exportSize === 'original') finalCanvas = canvas;
+             else fCtx.drawImage(canvas, 0, 0, exportSize, exportSize);
         }
-        if (!found) return { x:0, y:0, w:0, h:0 };
-        return { x: minX, y: minY, w: (maxX - minX + 1), h: (maxY - minY + 1) };
+
+        finalCanvas.toBlob((blob) => {
+            fileData.processedBlob = blob;
+            const url = URL.createObjectURL(blob);
+            const prevContainer = fileData.element.querySelector('.img-preview');
+            prevContainer.innerHTML = '';
+            const resImg = new Image();
+            resImg.src = url;
+            prevContainer.appendChild(resImg);
+            
+            fileData.element.querySelector('.dl-btn').onclick = () => {
+                saveAs(blob, 'chroma_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
+            };
+            fileData.element.classList.remove('processing');
+        }, 'image/png');
+    }
+
+    // --- Helpers ---
+
+    function detectDominantColor(data, w, h) {
+        let gS=0, bS=0, blS=0, wS=0;
+        // Sample grid
+        for (let i=0; i<data.length; i+=64) {
+             const r=data[i], g=data[i+1], b=data[i+2];
+             const br = (r+g+b)/3;
+             if (br<40) blS++;
+             else if (br>230) wS++;
+             else if (g > r && g > b) gS++;
+             else if (b > r && b > g) bS++;
+        }
+        let mode = 'green';
+        const max = Math.max(gS, bS, blS, wS);
+        if (max===bS) mode='blue'; else if(max===blS) mode='black'; else if(max===wS) mode='white';
+        
+        // Return approx colors
+        if(mode==='green') return {r:0, g:255, b:0, mode};
+        if(mode==='blue') return {r:0, g:0, b:255, mode};
+        if(mode==='black') return {r:0, g:0, b:0, mode};
+        return {r:255, g:255, b:255, mode};
+    }
+
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0; // achromatic
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h *= 60;
+        }
+        return [h, s, l];
     }
 
     function removeIslands(data, width, height, minSize) {
@@ -576,18 +832,13 @@
                     
                     while(stack.length > 0) {
                         const curr = stack.pop();
-                        const cx = curr % width;
-                        const cy = Math.floor(curr / width);
                         const neighbors = [1, -1, width, -width];
                         for (let offset of neighbors) {
                              const nIdx = curr + offset;
-                             if (nIdx >= 0 && nIdx < width*height && visited[nIdx]===0) {
-                                 // Simple adjacency check (imperfect for edges but fast)
-                                 if (data[nIdx*4+3] > 0) {
-                                     visited[nIdx] = 1;
-                                     stack.push(nIdx);
-                                     component.push(nIdx);
-                                 }
+                             if (nIdx >= 0 && nIdx < width*height && visited[nIdx]===0 && data[nIdx*4+3]>0) {
+                                 visited[nIdx] = 1;
+                                 stack.push(nIdx);
+                                 component.push(nIdx);
                              }
                         }
                     }
@@ -600,19 +851,18 @@
     }
 
     function applyStroke(data, width, height, strokeWidth, hexColor) {
-        const INF = 1e9;
         const grid = new Float32Array(width * height);
         const sr = parseInt(hexColor.substr(1,2), 16);
         const sg = parseInt(hexColor.substr(3,2), 16);
         const sb = parseInt(hexColor.substr(5,2), 16);
+        const INF = 1e9;
 
         for (let i = 0; i < width * height; i++) grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
 
-        // Euclidean Approx (8SSEDT) - Forward
+        // 8SSEDT Distance Transform
         for (let i = 0; i < width*height; i++) {
             if (grid[i] > 0) {
-                const x = i % width;
-                const y = Math.floor(i / width);
+                const x = i % width, y = Math.floor(i / width);
                 let minD = grid[i];
                 if (x > 0) minD = Math.min(minD, grid[i-1] + 1);
                 if (y > 0) minD = Math.min(minD, grid[i-width] + 1);
@@ -621,11 +871,9 @@
                 grid[i] = minD;
             }
         }
-        // Backward
         for (let i = width*height - 1; i >= 0; i--) {
             if (grid[i] > 0) {
-                const x = i % width;
-                const y = Math.floor(i / width);
+                const x = i % width, y = Math.floor(i / width);
                 let minD = grid[i];
                 if (x < width - 1) minD = Math.min(minD, grid[i+1] + 1);
                 if (y < height - 1) minD = Math.min(minD, grid[i+width] + 1);
@@ -646,15 +894,31 @@
         }
     }
 
+    function getContentBounds(data, w, h) {
+        let minX = w, minY = h, maxX = 0, maxY = 0, found = false;
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (data[(y * w + x) * 4 + 3] > 0) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                    found = true;
+                }
+            }
+        }
+        return found ? { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 } : { x:0, y:0, w:0, h:0 };
+    }
+
     function createResultCard(id, filename) {
         const div = document.createElement('div');
         div.className = 'image-card';
         div.innerHTML = `
-            <div class="img-preview"><div style="color: #555">Waiting...</div></div>
+            <div class="img-preview" title="Click to Pick Color if in Eyedropper Mode"><div style="color: #555">...</div></div>
             <div class="processing-overlay">Processing...</div>
             <div class="card-actions">
                 <div style="display:flex; align-items:center; max-width: 70%;">
-                    <span class="tag">...</span>
+                    <span class="tag">AUTO</span>
                     <div style="font-size:0.8rem; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${filename}</div>
                 </div>
                 <button class="icon-btn dl-btn" title="Download">⬇</button>
@@ -665,7 +929,7 @@
 
     function downloadAllZip() {
         const zip = new JSZip();
-        const imgFolder = zip.folder("processed_images");
+        const imgFolder = zip.folder("chroma_key_processed");
         let count = 0;
         state.files.forEach(file => {
             if (file.processedBlob) {
@@ -674,10 +938,10 @@
             }
         });
         if (count > 0) {
-            els.downloadZipBtn.disabled = true; 
+            els.downloadZipBtn.innerText = "Zipping...";
             imgFolder.generateAsync({type:"blob"}).then(content => {
                 saveAs(content, "chroma_key_results.zip");
-                els.downloadZipBtn.disabled = false; 
+                els.downloadZipBtn.innerText = "Download ZIP";
             });
         }
     }
@@ -687,16 +951,23 @@
         els.downloadBatchBtn.disabled = true; 
         const total = state.files.filter(f => f.processedBlob).length;
         if(total === 0) { els.downloadBatchBtn.disabled = false; return; }
-
         state.files.forEach((file, index) => {
             if (file.processedBlob) {
                 setTimeout(() => {
-                    saveAs(file.processedBlob, 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
+                    saveAs(file.processedBlob, 'chroma_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
                     downloadedCount++;
                     if (downloadedCount === total) els.downloadBatchBtn.disabled = false;
-                }, index * 250); 
+                }, index * 200); 
             }
         });
+    }
+
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+    function hexToRgb(hex) {
+        const bigint = parseInt(hex.substring(1), 16);
+        return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
     }
 </script>
 </body>
