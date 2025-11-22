@@ -6,340 +6,371 @@
     <title>ChromaKey v4.4 (Eyedropper)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        :root {
-            --bg: #1e1e24;
-            --panel: #2b2b36;
-            --text: #e1e1e6;
-            --accent: #ff006e;
-            --border: #444;
-            --input-bg: #1a1a20;
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
         }
-
-        h1 { margin-bottom: 20px; font-weight: 300; letter-spacing: 1px; }
-
-        .container {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
-
-        /* Controls Panel */
-        .controls {
-            background: var(--panel);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            height: fit-content;
-            position: sticky;
-            top: 20px;
-            z-index: 10;
-        }
-
-        .control-group { margin-bottom: 20px; }
-        .control-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: #aaa; }
-        .control-group span { float: right; color: var(--accent); font-weight: bold; }
-
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); }
-        input[type="color"] { width: 100%; height: 40px; border: none; cursor: pointer; background: none; }
+        .toast-enter { animation: slideInRight 0.3s ease-out; }
+        .toast-exit { animation: slideOutRight 0.3s ease-in; }
+        .fade-in { animation: fadeIn 0.2s ease-out; }
         
-        select {
-            width: 100%;
-            padding: 10px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            color: var(--text);
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        select:focus { outline: 2px solid var(--accent); border-color: transparent; }
-        
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 10px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            justify-content: space-between;
-        }
-        .checkbox-group label { margin-bottom: 0; color: var(--text); font-size: 1rem; cursor: pointer; }
-        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
-
-
-        .dropzone {
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-            margin-bottom: 20px;
-        }
-        .dropzone:hover, .dropzone.dragover {
-            border-color: var(--accent);
-            background: rgba(255, 0, 110, 0.1);
-        }
-        .dropzone p { margin: 0; color: #888; pointer-events: none; }
-
-        /* Results Grid */
-        .results-area { display: flex; flex-direction: column; }
-
-        .batch-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-        
-        .batch-buttons { display: flex; gap: 10px; }
-
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            transition: opacity 0.2s;
-        }
-        .btn:hover { opacity: 0.8; }
-        .btn:disabled { background: #555; color:#888; cursor: not-allowed; }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 15px;
-            padding-bottom: 100px;
-        }
-
-        .image-card {
-            background: var(--panel);
-            border-radius: 6px;
-            overflow: visible;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .img-preview {
-            height: 160px;
+        .checkerboard {
             background-image: 
-                linear-gradient(45deg, #333 25%, transparent 25%), 
-                linear-gradient(-45deg, #333 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #333 75%), 
-                linear-gradient(-45deg, transparent 75%, #333 75%);
+                linear-gradient(45deg, #2a2a2a 25%, transparent 25%), 
+                linear-gradient(-45deg, #2a2a2a 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #2a2a2a 75%), 
+                linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
-            overflow: hidden; 
-            border-radius: 6px 6px 0 0;
-            position: relative;
         }
-
-        /* Styling for the Eyedropper mode */
-        .img-preview.picking-mode {
+        
+        .magnifier-cursor {
             cursor: crosshair;
-            box-shadow: inset 0 0 0 2px var(--accent);
-        }
-        .img-preview.picking-mode::after {
-            content: "Click color to remove";
-            position: absolute;
-            bottom: 5px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            pointer-events: none;
-        }
-
-        .img-preview img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; 
-            border: 1px solid #555;
-            /* Disable pointer events on img so click goes to container for easier coordinate math */
-            pointer-events: none; 
-        }
-
-        .card-actions {
-            padding: 8px;
-            display: flex;
-            justify-content: space-between;
-            background: #222;
-            align-items: center;
-            border-radius: 0 0 6px 6px;
             position: relative;
         }
         
-        .tag {
-            font-size: 0.6rem;
-            background: #444;
-            color: #ccc;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-right: 8px;
-            text-transform: uppercase;
-            cursor: pointer;
-            border: 1px solid transparent;
-            user-select: none;
-        }
-        .tag:hover {
-            border-color: #fff;
-            filter: brightness(1.2);
-        }
-
-        /* Popover Menu */
-        .popover-menu {
+        .magnifier-loupe {
             position: absolute;
-            bottom: 100%;
-            left: 0;
-            background: #333;
-            border: 1px solid #555;
-            border-radius: 4px;
+            width: 100px;
+            height: 100px;
+            border: 3px solid #ff006e;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            background: white;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            z-index: 100;
             display: none;
-            flex-direction: column;
-            min-width: 140px;
-            overflow: hidden;
         }
-        .popover-menu.active { display: flex; }
         
-        .popover-item {
-            padding: 8px 12px;
-            font-size: 0.8rem;
+        .magnifier-active .magnifier-loupe {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-drawer {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            .mobile-drawer.open {
+                transform: translateX(0);
+            }
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.3s;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+        }
+        
+        input[type="range"]::-webkit-slider-track {
+            background: #374151;
+            height: 6px;
+            border-radius: 3px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #ff006e;
+            border-radius: 50%;
             cursor: pointer;
-            color: #eee;
-            border-bottom: 1px solid #444;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-top: -6px;
         }
-        .popover-item:last-child { border-bottom: none; }
-        .popover-item:hover { background: var(--accent); color: white; }
         
-        .color-dot {
-            width: 10px; height: 10px; border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.3);
+        input[type="range"]::-moz-range-track {
+            background: #374151;
+            height: 6px;
+            border-radius: 3px;
         }
-
-        /* Custom icon for eyedropper */
-        .eyedropper-icon {
-            width: 12px; height: 12px;
-            background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
-            background-size: contain;
-        }
-
-        .icon-btn {
-            background: none;
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #ff006e;
+            border-radius: 50%;
+            cursor: pointer;
             border: none;
-            color: #aaa;
-            cursor: pointer;
-            font-size: 1.2rem;
         }
-        .icon-btn:hover { color: #fff; }
-
-        .processing-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.8rem;
-            display: none;
-            z-index: 50;
-            border-radius: 6px;
-        }
-        .processing .processing-overlay { display: flex; }
     </style>
 </head>
-<body>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased">
 
-    <h1>Chroma Tool <small style="font-size:0.5em; color:#888">v4.4 (Eyedropper)</small></h1>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed z-50 flex flex-col gap-2 pointer-events-none" 
+         style="bottom: 1rem; right: 1rem; max-width: 400px;">
+    </div>
 
-    <div class="container">
-        <div class="controls">
-            <div class="dropzone" id="dropzone">
-                <p>Drag & Drop Images<br>or Click to Browse</p>
-                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
-            </div>
+    <!-- Mobile Menu Toggle -->
+    <button id="mobileMenuToggle" class="md:hidden fixed top-4 left-4 z-50 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg shadow-lg transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+    </button>
 
-            <div class="control-group">
-                <label>Export Size</label>
-                <select id="exportSize">
-                    <option value="512">512 x 512</option>
-                    <option value="256">256 x 256</option>
-                    <option value="128">128 x 128</option>
-                    <option value="64">64 x 64</option>
-                    <option value="original">Original (Disable Norm)</option>
-                </select>
-            </div>
-            
-            <div class="checkbox-group">
-                <label for="normalizeObject">Normalize / Center Object</label>
-                <input type="checkbox" id="normalizeObject" checked>
-            </div>
-
-            <div class="control-group">
-                <label>Tolerance <span id="tolVal">50</span></label>
-                <input type="range" id="tolerance" min="1" max="150" value="50">
-            </div>
-
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
-
-            <div class="control-group">
-                <label>Stroke Width (px) <span id="strokeVal">10</span></label>
-                <input type="range" id="strokeWidth" min="0" max="50" value="10">
-            </div>
-
-            <div class="control-group">
-                <label>Stroke Color</label>
-                <input type="color" id="strokeColor" value="#000000">
-            </div>
-        </div>
-
-        <div class="results-area">
-            <div class="batch-actions">
-                <span id="statusText">0 images loaded</span>
-                <div class="batch-buttons">
-                    <button id="downloadBatchBtn" class="btn" disabled>Download All (Files)</button>
-                    <button id="downloadZipBtn" class="btn" disabled>Download All (ZIP)</button>
+    <!-- Header -->
+    <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">Chroma Tool</h1>
+                        <p class="text-xs text-gray-400">v4.4 Professional</p>
+                    </div>
+                </div>
+                <div id="statusText" class="hidden md:block text-sm text-gray-400">
+                    0 images loaded
                 </div>
             </div>
-            <div class="grid" id="resultsGrid"></div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex flex-col lg:flex-row gap-6">
+            
+            <!-- Controls Panel -->
+            <aside id="controlsPanel" class="lg:w-80 mobile-drawer md:relative md:transform-none fixed inset-y-0 left-0 z-40 bg-gray-900 md:bg-transparent">
+                <div class="h-full overflow-y-auto p-4 md:p-0">
+                    <div class="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 lg:sticky lg:top-24">
+                        <div class="p-6 space-y-6">
+                            
+                            <!-- Upload Section -->
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Upload</h3>
+                                <div id="dropzone" class="border-2 border-dashed border-gray-700 hover:border-pink-500 rounded-lg p-8 text-center cursor-pointer transition-all group bg-gray-800/50 hover:bg-gray-800">
+                                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-600 group-hover:text-pink-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                    </svg>
+                                    <p class="text-sm text-gray-400 group-hover:text-gray-300">Drop images or click to browse</p>
+                                    <p class="text-xs text-gray-600 mt-1">PNG, JPG, GIF supported</p>
+                                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                                </div>
+                            </div>
+
+                            <!-- Export Settings -->
+                            <details open class="group">
+                                <summary class="text-sm font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center justify-between mb-3 hover:text-gray-300">
+                                    Export Settings
+                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </summary>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm text-gray-300 mb-2">Output Size</label>
+                                        <select id="exportSize" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all">
+                                            <option value="512">512 × 512</option>
+                                            <option value="256">256 × 256</option>
+                                            <option value="128">128 × 128</option>
+                                            <option value="64">64 × 64</option>
+                                            <option value="original">Original (No Normalize)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
+                                        <label for="normalizeObject" class="text-sm text-gray-300 cursor-pointer flex-1">Normalize & Center</label>
+                                        <input type="checkbox" id="normalizeObject" checked class="w-5 h-5 text-pink-500 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-pink-500 cursor-pointer">
+                                    </div>
+                                </div>
+                            </details>
+
+                            <!-- Chroma Key Settings -->
+                            <details open class="group">
+                                <summary class="text-sm font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center justify-between mb-3 hover:text-gray-300">
+                                    Chroma Key
+                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </summary>
+                                <div>
+                                    <label class="block text-sm text-gray-300 mb-2">
+                                        Tolerance 
+                                        <span id="tolVal" class="float-right text-pink-500 font-semibold">50</span>
+                                    </label>
+                                    <input type="range" id="tolerance" min="1" max="150" value="50" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>Precise</span>
+                                        <span>Aggressive</span>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <!-- Stroke Settings -->
+                            <details open class="group">
+                                <summary class="text-sm font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center justify-between mb-3 hover:text-gray-300">
+                                    Stroke
+                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </summary>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm text-gray-300 mb-2">
+                                            Width (px)
+                                            <span id="strokeVal" class="float-right text-pink-500 font-semibold">10</span>
+                                        </label>
+                                        <input type="range" id="strokeWidth" min="0" max="50" value="10" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm text-gray-300 mb-2">Color</label>
+                                        <input type="color" id="strokeColor" value="#000000" class="w-full h-12 bg-gray-800 border border-gray-700 rounded-lg cursor-pointer">
+                                    </div>
+                                </div>
+                            </details>
+
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 min-w-0">
+                
+                <!-- Batch Actions Bar -->
+                <div class="bg-gray-900 rounded-xl shadow-lg border border-gray-800 p-4 mb-6 sticky top-24 z-30">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span id="statusTextMobile" class="text-sm text-gray-400">0 images loaded</span>
+                        </div>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button id="downloadBatchBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm">
+                                <span class="hidden sm:inline">Download All (Files)</span>
+                                <span class="sm:hidden">Files</span>
+                            </button>
+                            <button id="downloadZipBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm">
+                                <span class="hidden sm:inline">Download All (ZIP)</span>
+                                <span class="sm:hidden">ZIP</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Grid -->
+                <div id="resultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
+                    <!-- Image cards will be inserted here -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-20">
+                    <svg class="w-24 h-24 mx-auto mb-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-400 mb-2">No images yet</h3>
+                    <p class="text-gray-600">Upload images to get started with background removal</p>
+                </div>
+
+            </main>
         </div>
     </div>
 
 <script>
-    // --- State ---
+    // ============ TOAST SYSTEM ============
+    const Toast = {
+        container: null,
+        
+        init() {
+            this.container = document.getElementById('toastContainer');
+            // Make container responsive
+            if (window.innerWidth < 768) {
+                this.container.style.left = '50%';
+                this.container.style.right = 'auto';
+                this.container.style.transform = 'translateX(-50%)';
+                this.container.style.bottom = '1rem';
+            }
+        },
+        
+        show(message, type = 'info', duration = 3000, action = null) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-enter pointer-events-auto';
+            
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                warning: 'bg-yellow-600',
+                info: 'bg-blue-600',
+                progress: 'bg-purple-600'
+            };
+            
+            const icons = {
+                success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>',
+                error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>',
+                warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>',
+                info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+                progress: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+            };
+            
+            toast.innerHTML = `
+                <div class="${colors[type]} text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 min-w-[280px] max-w-[400px]" role="${type === 'error' ? 'alert' : 'status'}">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        ${icons[type]}
+                    </svg>
+                    <span class="flex-1 text-sm font-medium">${message}</span>
+                    ${action ? `<button class="toast-action text-white hover:text-gray-200 text-xs font-semibold uppercase tracking-wide">${action.label}</button>` : ''}
+                    <button class="toast-close hover:bg-white/20 rounded p-1 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            this.container.appendChild(toast);
+            
+            const closeBtn = toast.querySelector('.toast-close');
+            const actionBtn = toast.querySelector('.toast-action');
+            
+            const remove = () => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            };
+            
+            closeBtn.addEventListener('click', remove);
+            if (actionBtn && action) {
+                actionBtn.addEventListener('click', () => {
+                    action.callback();
+                    remove();
+                });
+            }
+            
+            if (duration > 0) {
+                setTimeout(remove, duration);
+            }
+            
+            return { remove };
+        }
+    };
+
+    // Initialize toast system
+    Toast.init();
+
+    // ============ ORIGINAL APP STATE & LOGIC ============
     const state = {
         files: [], 
         settings: { 
@@ -365,12 +396,27 @@
         resultsGrid: document.getElementById('resultsGrid'),
         downloadZipBtn: document.getElementById('downloadZipBtn'),
         downloadBatchBtn: document.getElementById('downloadBatchBtn'),
-        statusText: document.getElementById('statusText')
+        statusText: document.getElementById('statusText'),
+        statusTextMobile: document.getElementById('statusTextMobile'),
+        emptyState: document.getElementById('emptyState')
     };
 
     let processTimeout;
 
-    // --- Init ---
+    // Mobile menu toggle
+    document.getElementById('mobileMenuToggle').addEventListener('click', () => {
+        document.getElementById('controlsPanel').classList.toggle('open');
+    });
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const panel = document.getElementById('controlsPanel');
+        const toggle = document.getElementById('mobileMenuToggle');
+        if (window.innerWidth < 768 && !panel.contains(e.target) && !toggle.contains(e.target)) {
+            panel.classList.remove('open');
+        }
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
         loadSettings();
         bindEvents();
@@ -441,8 +487,16 @@
     }
 
     function handleFiles(fileList) {
-        Array.from(fileList).forEach(file => {
-            if (!file.type.startsWith('image/')) return;
+        const validFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+        
+        if (validFiles.length === 0) {
+            Toast.show('No valid image files selected', 'warning');
+            return;
+        }
+        
+        Toast.show(`Processing ${validFiles.length} image(s)...`, 'info', 2000);
+        
+        validFiles.forEach(file => {
             const id = Date.now() + Math.random().toString(36).substr(2, 9);
             const card = createResultCard(id, file.name);
             els.resultsGrid.appendChild(card);
@@ -466,16 +520,22 @@
     }
 
     function updateStatus() {
-        els.statusText.innerText = `${state.files.length} image(s)`;
-        const isDisabled = state.files.length === 0;
+        const count = state.files.length;
+        const text = `${count} image${count !== 1 ? 's' : ''} loaded`;
+        els.statusText.innerText = text;
+        els.statusTextMobile.innerText = text;
+        
+        const isDisabled = count === 0;
         els.downloadZipBtn.disabled = isDisabled;
         els.downloadBatchBtn.disabled = isDisabled;
+        els.emptyState.style.display = count === 0 ? 'block' : 'none';
     }
 
     function triggerBatchProcess() {
         clearTimeout(processTimeout);
         processTimeout = setTimeout(() => {
             state.files.forEach(processImage);
+            Toast.show('Settings applied to all images', 'success', 2000);
         }, 300);
     }
 
@@ -490,7 +550,6 @@
         }
         closeAllMenus();
 
-        // Menu with Eyedropper
         existingMenu.innerHTML = `
             <div class="popover-item" data-mode="green"><div class="color-dot" style="background:#0f0"></div> Green</div>
             <div class="popover-item" data-mode="blue"><div class="color-dot" style="background:#00f"></div> Blue</div>
@@ -511,6 +570,7 @@
                     fileData.manualMode = mode;
                     closeAllMenus();
                     processImage(fileData);
+                    Toast.show(`Chroma key set to ${mode}`, 'success', 2000);
                 }
             });
         });
@@ -519,31 +579,21 @@
         state.activeMenuFileId = fileData.id;
     }
 
-    // --- Eyedropper Logic ---
     function activateEyedropper(fileData) {
         const previewDiv = fileData.element.querySelector('.img-preview');
         const imgEl = previewDiv.querySelector('img');
 
-        // 1. Temporarily revert to ORIGINAL image so user can see background
         imgEl.src = URL.createObjectURL(fileData.originalFile);
-        
-        // 2. Set UI State
         previewDiv.classList.add('picking-mode');
+        Toast.show('Click on a color to sample', 'info', 0);
 
-        // 3. One-time Click Listener
         const clickHandler = (e) => {
             e.preventDefault();
-            e.stopPropagation(); // prevent opening file dialog if bubbling
+            e.stopPropagation();
             
-            // Cleanup UI
             previewDiv.classList.remove('picking-mode');
             
-            // Calculate pixel position
             const rect = imgEl.getBoundingClientRect();
-            
-            // Check if click is actually on the image (due to object-fit: contain)
-            // But since we use object-fit:contain, the img element spans the full div usually.
-            // We need to draw the image to a canvas to read pixel data.
             
             const img = new Image();
             img.onload = () => {
@@ -553,37 +603,29 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0);
 
-                // Math to map DOM click (x,y) to Image (naturalX, naturalY)
-                // This is tricky with object-fit: contain.
-                // Simplified approach: Calculate Aspect Ratios
-                
                 const containerRatio = rect.width / rect.height;
                 const imgRatio = img.width / img.height;
                 
                 let renderWidth, renderHeight, renderLeft, renderTop;
 
                 if (imgRatio > containerRatio) {
-                    // Image constrained by width
                     renderWidth = rect.width;
                     renderHeight = rect.width / imgRatio;
                     renderLeft = 0;
                     renderTop = (rect.height - renderHeight) / 2;
                 } else {
-                    // Image constrained by height
                     renderHeight = rect.height;
                     renderWidth = rect.height * imgRatio;
                     renderTop = 0;
                     renderLeft = (rect.width - renderWidth) / 2;
                 }
 
-                // Click coordinates relative to the image rendering box
                 const clientX = e.clientX - rect.left;
                 const clientY = e.clientY - rect.top;
 
                 const relativeX = clientX - renderLeft;
                 const relativeY = clientY - renderTop;
 
-                // Check bounds (did they click black bars?)
                 if (relativeX >= 0 && relativeX <= renderWidth && relativeY >= 0 && relativeY <= renderHeight) {
                     const trueX = Math.floor((relativeX / renderWidth) * img.width);
                     const trueY = Math.floor((relativeY / renderHeight) * img.height);
@@ -591,25 +633,21 @@
                     const p = ctx.getImageData(trueX, trueY, 1, 1).data;
                     const hex = "#" + ((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1);
                     
-                    // Apply Selection
                     fileData.manualMode = 'custom';
                     fileData.customHex = hex;
                     
-                    // Reprocess
                     processImage(fileData);
+                    Toast.show(`Color sampled: ${hex}`, 'success', 2000);
                 } else {
-                    // User clicked the padding/black bars - Cancel or Reprocess original
                     processImage(fileData);
+                    Toast.show('Sample cancelled', 'info', 1500);
                 }
             };
             img.src = URL.createObjectURL(fileData.originalFile);
         };
 
-        // Add listener to the DIV container, not the IMG (because img has pointer-events:none)
         previewDiv.addEventListener('click', clickHandler, { once: true });
     }
-
-    // --- Core Processing ---
 
     function processImage(fileData) {
         const card = fileData.element;
@@ -628,7 +666,6 @@
             const width = canvas.width;
             const height = canvas.height;
 
-            // 1. DETERMINE MODE
             let mode = 'green';
             let customRGB = null;
 
@@ -641,7 +678,6 @@
                     customRGB = { r, g, b };
                 }
             } else {
-                // Auto Detection
                 let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
                 for (let i = 0; i < data.length; i+=32) { 
                     if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
@@ -659,7 +695,6 @@
                 else if (maxScore === whiteScore) mode = 'white';
             }
 
-            // Update UI Tag
             const tag = card.querySelector('.tag');
             if (mode === 'custom' && customRGB) {
                 tag.innerText = 'Custom';
@@ -672,7 +707,6 @@
                 tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
             }
 
-            // 2. REMOVE BACKGROUND
             const tol = state.settings.tolerance;
             
             for (let i = 0; i < data.length; i += 4) {
@@ -692,30 +726,25 @@
                     if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; 
                 }
                 else if (mode === 'custom' && customRGB) {
-                    // Euclidean distance for custom color
                     const dist = Math.sqrt(
                         Math.pow(r - customRGB.r, 2) + 
                         Math.pow(g - customRGB.g, 2) + 
                         Math.pow(b - customRGB.b, 2)
                     );
-                    // Standardize tolerance logic for custom pick
                     if (dist < tol * 1.5) isBackground = true; 
                 }
 
                 if (isBackground) data[i+3] = 0; 
             }
 
-            // 3. CLEAN UP
             removeIslands(data, width, height, 100);
 
-            // 4. STROKE
             if (state.settings.strokeWidth > 0) {
                 applyStroke(data, width, height, state.settings.strokeWidth, state.settings.strokeColor);
             }
 
             ctx.putImageData(imageData, 0, 0);
 
-            // 5. RESIZE / NORMALIZE
             let finalCanvas = document.createElement('canvas');
             let exportSize = parseInt(state.settings.exportSize);
             
@@ -757,7 +786,6 @@
                 }
             }
 
-            // 6. FINALIZE
             finalCanvas.toBlob((blob) => {
                 fileData.processedBlob = blob;
                 const url = URL.createObjectURL(blob);
@@ -769,14 +797,13 @@
 
                 card.querySelector('.dl-btn').onclick = () => {
                     saveAs(blob, 'processed_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
+                    Toast.show('Download started', 'success', 2000);
                 };
                 card.classList.remove('processing');
             }, 'image/png');
         };
         img.src = URL.createObjectURL(fileData.originalFile);
     }
-
-    // --- Helpers ---
 
     function getContentBounds(data, w, h) {
         let minX = w, minY = h, maxX = 0, maxY = 0;
@@ -874,17 +901,29 @@
 
     function createResultCard(id, filename) {
         const div = document.createElement('div');
-        div.className = 'image-card';
+        div.className = 'image-card bg-gray-900 rounded-xl shadow-lg border border-gray-800 overflow-hidden transition-all hover:shadow-2xl hover:shadow-pink-500/10 hover:-translate-y-1 fade-in';
         div.innerHTML = `
-            <div class="img-preview"><div style="color: #555">Waiting...</div></div>
-            <div class="processing-overlay">Processing...</div>
-            <div class="card-actions">
-                <div style="display:flex; align-items:center; max-width: 70%;">
-                    <span class="tag" title="Click to change chroma key">...</span>
+            <div class="img-preview checkerboard h-48 flex items-center justify-center p-3 relative">
+                <div class="text-gray-600 text-sm">Processing...</div>
+            </div>
+            <div class="processing-overlay absolute inset-0 bg-black/80 backdrop-blur-sm flex-col hidden">
+                <svg class="animate-spin h-8 w-8 text-pink-500 mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-white text-sm font-medium">Processing...</span>
+            </div>
+            <div class="card-actions p-3 bg-gray-800/50 flex items-center justify-between gap-2 relative">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <span class="tag text-[10px] px-2 py-1 rounded bg-gray-700 text-gray-300 font-semibold uppercase tracking-wide cursor-pointer hover:bg-gray-600 transition-colors" title="Click to change chroma key">...</span>
                     <div class="popover-menu"></div>
-                    <div style="font-size:0.8rem; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${filename}</div>
+                    <div class="text-xs text-gray-400 truncate flex-1">${filename}</div>
                 </div>
-                <button class="icon-btn dl-btn" title="Download">⬇</button>
+                <button class="dl-btn p-2 hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-white" title="Download">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                </button>
             </div>
         `;
         return div;
@@ -901,10 +940,12 @@
             }
         });
         if (count > 0) {
-            els.downloadZipBtn.disabled = true; 
+            els.downloadZipBtn.disabled = true;
+            Toast.show('Creating ZIP archive...', 'progress', 0);
             imgFolder.generateAsync({type:"blob"}).then(content => {
                 saveAs(content, "chroma_key_results.zip");
-                els.downloadZipBtn.disabled = false; 
+                els.downloadZipBtn.disabled = false;
+                Toast.show(`Downloaded ${count} images as ZIP`, 'success', 3000);
             });
         }
     }
@@ -913,18 +954,120 @@
         let downloadedCount = 0;
         els.downloadBatchBtn.disabled = true; 
         const total = state.files.filter(f => f.processedBlob).length;
-        if(total === 0) { els.downloadBatchBtn.disabled = false; return; }
+        if(total === 0) { 
+            els.downloadBatchBtn.disabled = false; 
+            Toast.show('No processed images to download', 'warning');
+            return; 
+        }
 
+        Toast.show(`Downloading ${total} files...`, 'progress', 0);
+        
         state.files.forEach((file, index) => {
             if (file.processedBlob) {
                 setTimeout(() => {
                     saveAs(file.processedBlob, 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
                     downloadedCount++;
-                    if (downloadedCount === total) els.downloadBatchBtn.disabled = false;
+                    if (downloadedCount === total) {
+                        els.downloadBatchBtn.disabled = false;
+                        Toast.show(`All ${total} files downloaded`, 'success', 3000);
+                    }
                 }, index * 250); 
             }
         });
     }
 </script>
+
+<style>
+    .processing .processing-overlay {
+        display: flex !important;
+    }
+    
+    .popover-menu {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        z-index: 100;
+        display: none;
+        flex-direction: column;
+        min-width: 150px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+    
+    .popover-menu.active { 
+        display: flex; 
+    }
+    
+    .popover-item {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        color: #e5e7eb;
+        border-bottom: 1px solid #374151;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: all 0.15s;
+    }
+    
+    .popover-item:last-child { 
+        border-bottom: none; 
+    }
+    
+    .popover-item:hover { 
+        background: #ff006e;
+        color: white;
+    }
+    
+    .color-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.3);
+        flex-shrink: 0;
+    }
+
+    .eyedropper-icon {
+        width: 14px;
+        height: 14px;
+        background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
+        background-size: contain;
+        flex-shrink: 0;
+    }
+    
+    .img-preview.picking-mode {
+        cursor: crosshair;
+        box-shadow: inset 0 0 0 3px #ff006e;
+        position: relative;
+    }
+    
+    .img-preview.picking-mode::after {
+        content: "Click color to sample";
+        position: absolute;
+        bottom: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.9);
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        pointer-events: none;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .img-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        pointer-events: none;
+    }
+</style>
+
 </body>
 </html>
