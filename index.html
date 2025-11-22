@@ -6,7 +6,7 @@
     <title>ChromaKey v4.4 (Eyedropper)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     
     <style>
         @keyframes slideInRight {
@@ -35,28 +35,6 @@
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
         
-        .magnifier-cursor {
-            cursor: crosshair;
-            position: relative;
-        }
-        
-        .magnifier-loupe {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            border: 3px solid #ff006e;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1000;
-            background: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            display: none;
-        }
-        
-        .magnifier-active .magnifier-loupe {
-            display: block;
-        }
-        
         @media (max-width: 768px) {
             .mobile-drawer {
                 transform: translateX(-100%);
@@ -65,14 +43,6 @@
             .mobile-drawer.open {
                 transform: translateX(0);
             }
-        }
-        
-        .progress-ring {
-            transform: rotate(-90deg);
-        }
-        
-        .progress-ring-circle {
-            transition: stroke-dashoffset 0.3s;
         }
         
         input[type="range"] {
@@ -112,6 +82,97 @@
             cursor: pointer;
             border: none;
         }
+        
+        .processing .processing-overlay {
+            display: flex !important;
+        }
+        
+        .popover-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            min-width: 150px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .popover-menu.active { 
+            display: flex; 
+        }
+        
+        .popover-item {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            color: #e5e7eb;
+            border-bottom: 1px solid #374151;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.15s;
+        }
+        
+        .popover-item:last-child { 
+            border-bottom: none; 
+        }
+        
+        .popover-item:hover { 
+            background: #ff006e;
+            color: white;
+        }
+        
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.3);
+            flex-shrink: 0;
+        }
+
+        .eyedropper-icon {
+            width: 14px;
+            height: 14px;
+            background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
+            background-size: contain;
+            flex-shrink: 0;
+        }
+        
+        .img-preview.picking-mode {
+            cursor: crosshair;
+            box-shadow: inset 0 0 0 3px #ff006e;
+            position: relative;
+        }
+        
+        .img-preview.picking-mode::after {
+            content: "Click color to remove";
+            position: absolute;
+            bottom: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            pointer-events: none;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .img-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            border: 1px solid #555;
+        }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans antialiased">
@@ -140,7 +201,7 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-white">Chroma Tool</h1>
-                        <p class="text-xs text-gray-400">v4.4 Professional</p>
+                        <p class="text-xs text-gray-400">v4.4 (Eyedropper)</p>
                     </div>
                 </div>
                 <div id="statusText" class="hidden md:block text-sm text-gray-400">
@@ -166,68 +227,44 @@
                                     <svg class="w-12 h-12 mx-auto mb-3 text-gray-600 group-hover:text-pink-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                                     </svg>
-                                    <p class="text-sm text-gray-400 group-hover:text-gray-300">Drop images or click to browse</p>
-                                    <p class="text-xs text-gray-600 mt-1">PNG, JPG, GIF supported</p>
+                                    <p class="text-sm text-gray-400 group-hover:text-gray-300">Drag & Drop Images<br>or Click to Browse</p>
                                     <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
                                 </div>
                             </div>
 
                             <!-- Export Settings -->
-                            <details open class="group">
-                                <summary class="text-sm font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center justify-between mb-3 hover:text-gray-300">
-                                    Export Settings
-                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                    </svg>
-                                </summary>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm text-gray-300 mb-2">Output Size</label>
-                                        <select id="exportSize" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all">
-                                            <option value="512">512 × 512</option>
-                                            <option value="256">256 × 256</option>
-                                            <option value="128">128 × 128</option>
-                                            <option value="64">64 × 64</option>
-                                            <option value="original">Original (No Normalize)</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
-                                        <label for="normalizeObject" class="text-sm text-gray-300 cursor-pointer flex-1">Normalize & Center</label>
-                                        <input type="checkbox" id="normalizeObject" checked class="w-5 h-5 text-pink-500 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-pink-500 cursor-pointer">
-                                    </div>
-                                </div>
-                            </details>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Export Size</h3>
+                                <select id="exportSize" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all">
+                                    <option value="512">512 x 512</option>
+                                    <option value="256">256 x 256</option>
+                                    <option value="128">128 x 128</option>
+                                    <option value="64">64 x 64</option>
+                                    <option value="original">Original (Disable Norm)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
+                                <label for="normalizeObject" class="text-sm text-gray-300 cursor-pointer flex-1">Normalize / Center Object</label>
+                                <input type="checkbox" id="normalizeObject" checked class="w-5 h-5 text-pink-500 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-pink-500 cursor-pointer">
+                            </div>
 
-                            <!-- Chroma Key Settings -->
-                            <details open class="group">
-                                <summary class="text-sm font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center justify-between mb-3 hover:text-gray-300">
-                                    Chroma Key
-                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                    </svg>
-                                </summary>
-                                <div>
-                                    <label class="block text-sm text-gray-300 mb-2">
-                                        Tolerance 
-                                        <span id="tolVal" class="float-right text-pink-500 font-semibold">50</span>
-                                    </label>
-                                    <input type="range" id="tolerance" min="1" max="150" value="50" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
-                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
-                                        <span>Precise</span>
-                                        <span>Aggressive</span>
-                                    </div>
-                                </div>
-                            </details>
+                            <hr class="border-gray-800">
+
+                            <!-- Tolerance -->
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-2">
+                                    Tolerance 
+                                    <span id="tolVal" class="float-right text-pink-500 font-semibold">50</span>
+                                </label>
+                                <input type="range" id="tolerance" min="1" max="150" value="50" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
+                            </div>
+
+                            <hr class="border-gray-800">
 
                             <!-- Stroke Settings -->
-                            <details open class="group">
-                                <summary class="text-sm font-semibold text-gray-400 uppercase tracking-wider cursor-pointer flex items-center justify-between mb-3 hover:text-gray-300">
-                                    Stroke
-                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                    </svg>
-                                </summary>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Stroke</h3>
                                 <div class="space-y-4">
                                     <div>
                                         <label class="block text-sm text-gray-300 mb-2">
@@ -237,11 +274,11 @@
                                         <input type="range" id="strokeWidth" min="0" max="50" value="10" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
                                     </div>
                                     <div>
-                                        <label class="block text-sm text-gray-300 mb-2">Color</label>
+                                        <label class="block text-sm text-gray-300 mb-2">Stroke Color</label>
                                         <input type="color" id="strokeColor" value="#000000" class="w-full h-12 bg-gray-800 border border-gray-700 rounded-lg cursor-pointer">
                                     </div>
                                 </div>
-                            </details>
+                            </div>
 
                         </div>
                     </div>
@@ -255,17 +292,14 @@
                 <div class="bg-gray-900 rounded-xl shadow-lg border border-gray-800 p-4 mb-6 sticky top-24 z-30">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                             <span id="statusTextMobile" class="text-sm text-gray-400">0 images loaded</span>
                         </div>
                         <div class="flex gap-2 w-full sm:w-auto">
-                            <button id="downloadBatchBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm">
-                                <span class="hidden sm:inline">Download All (Files)</span>
-                                <span class="sm:hidden">Files</span>
+                            <button id="downloadBatchBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm uppercase tracking-wide">
+                                Download All (Files)
                             </button>
-                            <button id="downloadZipBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm">
-                                <span class="hidden sm:inline">Download All (ZIP)</span>
-                                <span class="sm:hidden">ZIP</span>
+                            <button id="downloadZipBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm uppercase tracking-wide">
+                                Download All (ZIP)
                             </button>
                         </div>
                     </div>
@@ -276,27 +310,17 @@
                     <!-- Image cards will be inserted here -->
                 </div>
 
-                <!-- Empty State -->
-                <div id="emptyState" class="text-center py-20">
-                    <svg class="w-24 h-24 mx-auto mb-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    <h3 class="text-xl font-semibold text-gray-400 mb-2">No images yet</h3>
-                    <p class="text-gray-600">Upload images to get started with background removal</p>
-                </div>
-
             </main>
         </div>
     </div>
 
 <script>
-    // ============ TOAST SYSTEM ============
+    // ============ TOAST SYSTEM (NEW UI FEATURE) ============
     const Toast = {
         container: null,
         
         init() {
             this.container = document.getElementById('toastContainer');
-            // Make container responsive
             if (window.innerWidth < 768) {
                 this.container.style.left = '50%';
                 this.container.style.right = 'auto';
@@ -305,7 +329,7 @@
             }
         },
         
-        show(message, type = 'info', duration = 3000, action = null) {
+        show(message, type = 'info', duration = 3000) {
             const toast = document.createElement('div');
             toast.className = 'toast-enter pointer-events-auto';
             
@@ -314,7 +338,6 @@
                 error: 'bg-red-600',
                 warning: 'bg-yellow-600',
                 info: 'bg-blue-600',
-                progress: 'bg-purple-600'
             };
             
             const icons = {
@@ -322,7 +345,6 @@
                 error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>',
                 warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>',
                 info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
-                progress: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>'
             };
             
             toast.innerHTML = `
@@ -331,7 +353,6 @@
                         ${icons[type]}
                     </svg>
                     <span class="flex-1 text-sm font-medium">${message}</span>
-                    ${action ? `<button class="toast-action text-white hover:text-gray-200 text-xs font-semibold uppercase tracking-wide">${action.label}</button>` : ''}
                     <button class="toast-close hover:bg-white/20 rounded p-1 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -343,7 +364,6 @@
             this.container.appendChild(toast);
             
             const closeBtn = toast.querySelector('.toast-close');
-            const actionBtn = toast.querySelector('.toast-action');
             
             const remove = () => {
                 toast.classList.remove('toast-enter');
@@ -352,25 +372,29 @@
             };
             
             closeBtn.addEventListener('click', remove);
-            if (actionBtn && action) {
-                actionBtn.addEventListener('click', () => {
-                    action.callback();
-                    remove();
-                });
-            }
             
             if (duration > 0) {
                 setTimeout(remove, duration);
             }
-            
-            return { remove };
         }
     };
 
-    // Initialize toast system
     Toast.init();
 
-    // ============ ORIGINAL APP STATE & LOGIC ============
+    // ============ MOBILE MENU (NEW UI FEATURE) ============
+    document.getElementById('mobileMenuToggle').addEventListener('click', () => {
+        document.getElementById('controlsPanel').classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        const panel = document.getElementById('controlsPanel');
+        const toggle = document.getElementById('mobileMenuToggle');
+        if (window.innerWidth < 768 && !panel.contains(e.target) && !toggle.contains(e.target)) {
+            panel.classList.remove('open');
+        }
+    });
+
+    // ============ ORIGINAL APP CODE (UNCHANGED) ============
     const state = {
         files: [], 
         settings: { 
@@ -397,25 +421,10 @@
         downloadZipBtn: document.getElementById('downloadZipBtn'),
         downloadBatchBtn: document.getElementById('downloadBatchBtn'),
         statusText: document.getElementById('statusText'),
-        statusTextMobile: document.getElementById('statusTextMobile'),
-        emptyState: document.getElementById('emptyState')
+        statusTextMobile: document.getElementById('statusTextMobile')
     };
 
     let processTimeout;
-
-    // Mobile menu toggle
-    document.getElementById('mobileMenuToggle').addEventListener('click', () => {
-        document.getElementById('controlsPanel').classList.toggle('open');
-    });
-
-    // Close mobile menu when clicking outside
-    document.addEventListener('click', (e) => {
-        const panel = document.getElementById('controlsPanel');
-        const toggle = document.getElementById('mobileMenuToggle');
-        if (window.innerWidth < 768 && !panel.contains(e.target) && !toggle.contains(e.target)) {
-            panel.classList.remove('open');
-        }
-    });
 
     window.addEventListener('DOMContentLoaded', () => {
         loadSettings();
@@ -487,16 +496,8 @@
     }
 
     function handleFiles(fileList) {
-        const validFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
-        
-        if (validFiles.length === 0) {
-            Toast.show('No valid image files selected', 'warning');
-            return;
-        }
-        
-        Toast.show(`Processing ${validFiles.length} image(s)...`, 'info', 2000);
-        
-        validFiles.forEach(file => {
+        Array.from(fileList).forEach(file => {
+            if (!file.type.startsWith('image/')) return;
             const id = Date.now() + Math.random().toString(36).substr(2, 9);
             const card = createResultCard(id, file.name);
             els.resultsGrid.appendChild(card);
@@ -520,22 +521,18 @@
     }
 
     function updateStatus() {
-        const count = state.files.length;
-        const text = `${count} image${count !== 1 ? 's' : ''} loaded`;
+        const text = `${state.files.length} image(s)`;
         els.statusText.innerText = text;
         els.statusTextMobile.innerText = text;
-        
-        const isDisabled = count === 0;
+        const isDisabled = state.files.length === 0;
         els.downloadZipBtn.disabled = isDisabled;
         els.downloadBatchBtn.disabled = isDisabled;
-        els.emptyState.style.display = count === 0 ? 'block' : 'none';
     }
 
     function triggerBatchProcess() {
         clearTimeout(processTimeout);
         processTimeout = setTimeout(() => {
             state.files.forEach(processImage);
-            Toast.show('Settings applied to all images', 'success', 2000);
         }, 300);
     }
 
@@ -570,7 +567,6 @@
                     fileData.manualMode = mode;
                     closeAllMenus();
                     processImage(fileData);
-                    Toast.show(`Chroma key set to ${mode}`, 'success', 2000);
                 }
             });
         });
@@ -584,8 +580,8 @@
         const imgEl = previewDiv.querySelector('img');
 
         imgEl.src = URL.createObjectURL(fileData.originalFile);
+        
         previewDiv.classList.add('picking-mode');
-        Toast.show('Click on a color to sample', 'info', 0);
 
         const clickHandler = (e) => {
             e.preventDefault();
@@ -637,10 +633,8 @@
                     fileData.customHex = hex;
                     
                     processImage(fileData);
-                    Toast.show(`Color sampled: ${hex}`, 'success', 2000);
                 } else {
                     processImage(fileData);
-                    Toast.show('Sample cancelled', 'info', 1500);
                 }
             };
             img.src = URL.createObjectURL(fileData.originalFile);
@@ -797,7 +791,6 @@
 
                 card.querySelector('.dl-btn').onclick = () => {
                     saveAs(blob, 'processed_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
-                    Toast.show('Download started', 'success', 2000);
                 };
                 card.classList.remove('processing');
             }, 'image/png');
@@ -904,9 +897,9 @@
         div.className = 'image-card bg-gray-900 rounded-xl shadow-lg border border-gray-800 overflow-hidden transition-all hover:shadow-2xl hover:shadow-pink-500/10 hover:-translate-y-1 fade-in';
         div.innerHTML = `
             <div class="img-preview checkerboard h-48 flex items-center justify-center p-3 relative">
-                <div class="text-gray-600 text-sm">Processing...</div>
+                <div class="text-gray-600 text-sm">Waiting...</div>
             </div>
-            <div class="processing-overlay absolute inset-0 bg-black/80 backdrop-blur-sm flex-col hidden">
+            <div class="processing-overlay absolute inset-0 bg-black/80 backdrop-blur-sm flex-col hidden items-center justify-center">
                 <svg class="animate-spin h-8 w-8 text-pink-500 mb-2" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -940,12 +933,10 @@
             }
         });
         if (count > 0) {
-            els.downloadZipBtn.disabled = true;
-            Toast.show('Creating ZIP archive...', 'progress', 0);
+            els.downloadZipBtn.disabled = true; 
             imgFolder.generateAsync({type:"blob"}).then(content => {
                 saveAs(content, "chroma_key_results.zip");
-                els.downloadZipBtn.disabled = false;
-                Toast.show(`Downloaded ${count} images as ZIP`, 'success', 3000);
+                els.downloadZipBtn.disabled = false; 
             });
         }
     }
@@ -954,120 +945,19 @@
         let downloadedCount = 0;
         els.downloadBatchBtn.disabled = true; 
         const total = state.files.filter(f => f.processedBlob).length;
-        if(total === 0) { 
-            els.downloadBatchBtn.disabled = false; 
-            Toast.show('No processed images to download', 'warning');
-            return; 
-        }
+        if(total === 0) { els.downloadBatchBtn.disabled = false; return; }
 
-        Toast.show(`Downloading ${total} files...`, 'progress', 0);
-        
         state.files.forEach((file, index) => {
             if (file.processedBlob) {
                 setTimeout(() => {
                     saveAs(file.processedBlob, 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
                     downloadedCount++;
-                    if (downloadedCount === total) {
-                        els.downloadBatchBtn.disabled = false;
-                        Toast.show(`All ${total} files downloaded`, 'success', 3000);
-                    }
+                    if (downloadedCount === total) els.downloadBatchBtn.disabled = false;
                 }, index * 250); 
             }
         });
     }
 </script>
-
-<style>
-    .processing .processing-overlay {
-        display: flex !important;
-    }
-    
-    .popover-menu {
-        position: absolute;
-        bottom: 100%;
-        left: 0;
-        background: #1f2937;
-        border: 1px solid #374151;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        z-index: 100;
-        display: none;
-        flex-direction: column;
-        min-width: 150px;
-        overflow: hidden;
-        margin-bottom: 0.5rem;
-    }
-    
-    .popover-menu.active { 
-        display: flex; 
-    }
-    
-    .popover-item {
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-        cursor: pointer;
-        color: #e5e7eb;
-        border-bottom: 1px solid #374151;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        transition: all 0.15s;
-    }
-    
-    .popover-item:last-child { 
-        border-bottom: none; 
-    }
-    
-    .popover-item:hover { 
-        background: #ff006e;
-        color: white;
-    }
-    
-    .color-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        border: 1px solid rgba(255,255,255,0.3);
-        flex-shrink: 0;
-    }
-
-    .eyedropper-icon {
-        width: 14px;
-        height: 14px;
-        background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
-        background-size: contain;
-        flex-shrink: 0;
-    }
-    
-    .img-preview.picking-mode {
-        cursor: crosshair;
-        box-shadow: inset 0 0 0 3px #ff006e;
-        position: relative;
-    }
-    
-    .img-preview.picking-mode::after {
-        content: "Click color to sample";
-        position: absolute;
-        bottom: 0.5rem;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0,0,0,0.9);
-        color: white;
-        font-size: 0.75rem;
-        padding: 0.375rem 0.75rem;
-        border-radius: 0.375rem;
-        pointer-events: none;
-        white-space: nowrap;
-        font-weight: 500;
-    }
-
-    .img-preview img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        pointer-events: none;
-    }
-</style>
 
 </body>
 </html>
