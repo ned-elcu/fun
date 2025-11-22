@@ -9,9 +9,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://unpkg.com/@floating-ui/dom@1.5.3/dist/floating-ui.dom.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/granim@2.0.0/dist/granim.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/2.6.2/countUp.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- CSS Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -71,7 +80,17 @@
             width: 100%;
             height: 100%;
             z-index: 0;
-            opacity: 0.4;
+            opacity: 0.3;
+        }
+
+        #granim-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
         }
 
         .bg-gradient {
@@ -124,6 +143,13 @@
             justify-content: center;
             font-size: 24px;
             box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: white;
+            stroke-width: 2;
         }
 
         h1 {
@@ -202,6 +228,12 @@
             gap: 8px;
         }
 
+        .section-title svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--accent);
+        }
+
         .section-divider {
             height: 1px;
             background: var(--border);
@@ -255,9 +287,14 @@
         }
 
         .dropzone-icon {
-            font-size: 48px;
             margin-bottom: 16px;
             opacity: 0.6;
+        }
+
+        .dropzone-icon svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-secondary);
         }
 
         .dropzone-text {
@@ -510,6 +547,12 @@
             color: var(--accent);
         }
 
+        .stat-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--accent);
+        }
+
         .stat-label {
             color: var(--text-tertiary);
             font-size: 0.8rem;
@@ -541,6 +584,11 @@
             gap: 8px;
             font-family: 'Inter', sans-serif;
             letter-spacing: 0.3px;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
         }
 
         .btn-primary {
@@ -772,9 +820,13 @@
         .eyedropper-icon {
             width: 16px;
             height: 16px;
-            background: url('data:image/svg+xml;utf8,<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
-            background-size: contain;
             flex-shrink: 0;
+        }
+
+        .eyedropper-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
         }
 
         .icon-btn {
@@ -789,7 +841,12 @@
             cursor: pointer;
             color: var(--text-secondary);
             transition: all 0.2s ease;
-            font-size: 1.1rem;
+        }
+
+        .icon-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
         }
 
         .icon-btn:hover {
@@ -888,7 +945,13 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-size: 14px;
+        }
+
+        .toast-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 2.5;
         }
 
         .toast.success .toast-icon {
@@ -987,6 +1050,7 @@
 </head>
 <body>
     <!-- Background Effects -->
+    <canvas id="granim-canvas"></canvas>
     <div id="particles-js"></div>
     <div class="bg-gradient"></div>
 
@@ -995,9 +1059,11 @@
 
     <div class="app-container">
         <!-- Header -->
-        <div class="header">
+        <div class="header" data-aos="fade-down" data-aos-duration="800">
             <div class="logo">
-                <div class="logo-icon">✨</div>
+                <div class="logo-icon">
+                    <i data-lucide="scissors"></i>
+                </div>
             </div>
             <h1>
                 ChromaKey Pro
@@ -1009,12 +1075,17 @@
         <!-- Main Grid -->
         <div class="main-grid">
             <!-- Controls Panel -->
-            <div class="controls-panel">
+            <div class="controls-panel" data-aos="fade-right" data-aos-duration="800" data-aos-delay="100">
                 <div class="panel-section">
-                    <div class="section-title">📁 Input</div>
+                    <div class="section-title">
+                        <i data-lucide="folder-input"></i>
+                        Input
+                    </div>
                     <div class="dropzone" id="dropzone">
                         <div class="dropzone-content">
-                            <div class="dropzone-icon">📤</div>
+                            <div class="dropzone-icon">
+                                <i data-lucide="upload-cloud"></i>
+                            </div>
                             <p class="dropzone-text">
                                 <strong>Drop images here</strong><br>
                                 or click to browse
@@ -1027,7 +1098,10 @@
                 <div class="section-divider"></div>
 
                 <div class="panel-section">
-                    <div class="section-title">⚙️ Export Settings</div>
+                    <div class="section-title">
+                        <i data-lucide="settings"></i>
+                        Export Settings
+                    </div>
                     
                     <div class="control-group">
                         <label class="control-label">Export Size</label>
@@ -1051,7 +1125,10 @@
                 <div class="section-divider"></div>
 
                 <div class="panel-section">
-                    <div class="section-title">🎨 Chroma Settings</div>
+                    <div class="section-title">
+                        <i data-lucide="pipette"></i>
+                        Chroma Settings
+                    </div>
                     
                     <div class="control-group">
                         <label class="control-label">
@@ -1065,7 +1142,10 @@
                 <div class="section-divider"></div>
 
                 <div class="panel-section">
-                    <div class="section-title">✏️ Stroke</div>
+                    <div class="section-title">
+                        <i data-lucide="pen-tool"></i>
+                        Stroke
+                    </div>
                     
                     <div class="control-group">
                         <label class="control-label">
@@ -1086,11 +1166,13 @@
             </div>
 
             <!-- Results Area -->
-            <div class="results-area">
+            <div class="results-area" data-aos="fade-left" data-aos-duration="800" data-aos-delay="200">
                 <div class="results-header">
                     <div class="stats">
                         <div class="stat-item">
-                            <div class="stat-icon">📊</div>
+                            <div class="stat-icon">
+                                <i data-lucide="images"></i>
+                            </div>
                             <div>
                                 <div class="stat-label">Images</div>
                                 <div class="stat-value" id="statusText">0</div>
@@ -1099,10 +1181,12 @@
                     </div>
                     <div class="batch-actions">
                         <button id="downloadBatchBtn" class="btn btn-secondary" disabled>
-                            <span>📥</span> Download All
+                            <i data-lucide="download"></i>
+                            Download All
                         </button>
                         <button id="downloadZipBtn" class="btn btn-primary" disabled>
-                            <span>🗜️</span> Download ZIP
+                            <i data-lucide="file-archive"></i>
+                            Download ZIP
                         </button>
                     </div>
                 </div>
@@ -1112,6 +1196,53 @@
     </div>
 
     <script>
+        // Wait for all libraries to load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize Lucide Icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            // Initialize AOS
+            if (typeof AOS !== 'undefined') {
+                AOS.init({
+                    duration: 800,
+                    easing: 'ease-out-cubic',
+                    once: true,
+                    offset: 50
+                });
+            }
+
+            // Initialize Granim
+            if (typeof Granim !== 'undefined') {
+                const granimInstance = new Granim({
+                    element: '#granim-canvas',
+                    direction: 'diagonal',
+                    isPausedWhenNotInView: true,
+                    states: {
+                        "default-state": {
+                            gradients: [
+                                ['#667eea', '#764ba2'],
+                                ['#f093fb', '#f5576c'],
+                                ['#4facfe', '#00f2fe'],
+                                ['#43e97b', '#38f9d7']
+                            ],
+                            transitionSpeed: 8000
+                        }
+                    }
+                });
+            }
+
+            // Configure NProgress
+            if (typeof NProgress !== 'undefined') {
+                NProgress.configure({ 
+                    showSpinner: false,
+                    trickleSpeed: 200,
+                    minimum: 0.1
+                });
+            }
+        });
+
         // Toast Notification System
         class ToastManager {
             constructor() {
@@ -1123,14 +1254,14 @@
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
                 
-                const icons = {
-                    success: '✓',
-                    error: '✕',
-                    info: 'ℹ'
+                const iconMap = {
+                    success: 'check-circle',
+                    error: 'x-circle',
+                    info: 'info'
                 };
 
                 toast.innerHTML = `
-                    <div class="toast-icon">${icons[type]}</div>
+                    <div class="toast-icon"><i data-lucide="${iconMap[type]}"></i></div>
                     <div class="toast-content">
                         <div class="toast-title">${title}</div>
                         ${message ? `<div class="toast-message">${message}</div>` : ''}
@@ -1139,6 +1270,12 @@
                 `;
 
                 this.container.appendChild(toast);
+                
+                // Initialize icons for toast
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+                
                 this.toasts.push(toast);
 
                 // Animate in
@@ -1194,7 +1331,7 @@
         // Initialize Particles
         particlesJS('particles-js', {
             particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
+                number: { value: 60, density: { enable: true, value_area: 800 } },
                 color: { value: '#6366f1' },
                 shape: { type: 'circle' },
                 opacity: { value: 0.3, random: true },
@@ -1203,12 +1340,12 @@
                     enable: true,
                     distance: 150,
                     color: '#6366f1',
-                    opacity: 0.2,
+                    opacity: 0.15,
                     width: 1
                 },
                 move: {
                     enable: true,
-                    speed: 1,
+                    speed: 0.8,
                     direction: 'none',
                     random: true,
                     straight: false,
@@ -1222,7 +1359,7 @@
                     resize: true
                 },
                 modes: {
-                    grab: { distance: 140, line_linked: { opacity: 0.5 } }
+                    grab: { distance: 140, line_linked: { opacity: 0.4 } }
                 }
             }
         });
@@ -1344,12 +1481,31 @@
                 return;
             }
 
+            // Show progress bar
+            if (typeof NProgress !== 'undefined') {
+                NProgress.start();
+            }
+
+            // Confetti celebration for first upload
+            if (state.files.length === 0 && typeof confetti !== 'undefined') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
             toast.success('Files Added', `${files.length} image${files.length > 1 ? 's' : ''} loaded`);
 
             files.forEach((file, index) => {
                 const id = Date.now() + Math.random().toString(36).substr(2, 9);
                 const card = createResultCard(id, file.name);
                 els.resultsGrid.appendChild(card);
+
+                // Initialize icons in the new card
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
 
                 // Animate card in with delay
                 gsap.from(card, {
@@ -1376,11 +1532,30 @@
                 state.files.push(fileData);
                 processImage(fileData);
             });
+
+            if (typeof NProgress !== 'undefined') {
+                NProgress.done();
+            }
             updateStatus();
         }
 
         function updateStatus() {
-            els.statusText.innerText = state.files.length;
+            const countEl = document.getElementById('statusText');
+            const currentCount = parseInt(countEl.innerText) || 0;
+            const newCount = state.files.length;
+            
+            // Animated counter
+            if (typeof countUp !== 'undefined' && countUp.CountUp) {
+                const counter = new countUp.CountUp(countEl, newCount, {
+                    startVal: currentCount,
+                    duration: 0.8,
+                    useEasing: true
+                });
+                counter.start();
+            } else {
+                countEl.innerText = newCount;
+            }
+
             const isDisabled = state.files.length === 0;
             els.downloadZipBtn.disabled = isDisabled;
             els.downloadBatchBtn.disabled = isDisabled;
@@ -1409,8 +1584,13 @@
                 <div class="popover-item" data-mode="blue"><div class="color-dot" style="background:#00f"></div> Blue</div>
                 <div class="popover-item" data-mode="white"><div class="color-dot" style="background:#fff"></div> White</div>
                 <div class="popover-item" data-mode="black"><div class="color-dot" style="background:#000"></div> Black</div>
-                <div class="popover-item" data-mode="picker"><div class="eyedropper-icon"></div> Eyedropper</div>
+                <div class="popover-item" data-mode="picker"><div class="eyedropper-icon"><i data-lucide="pipette"></i></div> Eyedropper</div>
             `;
+
+            // Initialize icons in popover
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
 
             existingMenu.querySelectorAll('.popover-item').forEach(item => {
                 item.addEventListener('click', (ev) => {
@@ -1659,6 +1839,17 @@
                     card.querySelector('.dl-btn').onclick = () => {
                         saveAs(blob, 'processed_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
                         toast.success('Downloaded', fileData.originalFile.name);
+                        
+                        // Small confetti burst
+                        if (typeof confetti !== 'undefined') {
+                            confetti({
+                                particleCount: 30,
+                                angle: 60,
+                                spread: 55,
+                                origin: { x: 0.5, y: 0.5 },
+                                colors: ['#6366f1', '#f5576c', '#00f2fe']
+                            });
+                        }
                     };
                     card.classList.remove('processing');
                 }, 'image/png');
@@ -1778,7 +1969,9 @@
                         <div class="popover-menu"></div>
                         <div class="filename">${filename}</div>
                     </div>
-                    <button class="icon-btn dl-btn" title="Download">⬇</button>
+                    <button class="icon-btn dl-btn" title="Download">
+                        <i data-lucide="download"></i>
+                    </button>
                 </div>
             `;
             return div;
@@ -1796,11 +1989,26 @@
             });
             if (count > 0) {
                 els.downloadZipBtn.disabled = true;
+                if (typeof NProgress !== 'undefined') {
+                    NProgress.start();
+                }
                 toast.info('Creating ZIP', 'Packaging your files...');
                 imgFolder.generateAsync({type:"blob"}).then(content => {
                     saveAs(content, "chroma_key_results.zip");
+                    if (typeof NProgress !== 'undefined') {
+                        NProgress.done();
+                    }
                     toast.success('ZIP Ready', `${count} files packaged successfully`);
-                    els.downloadZipBtn.disabled = false; 
+                    els.downloadZipBtn.disabled = false;
+                    
+                    // Celebration confetti
+                    if (typeof confetti !== 'undefined') {
+                        confetti({
+                            particleCount: 150,
+                            spread: 100,
+                            origin: { y: 0.6 }
+                        });
+                    }
                 });
             }
         }
@@ -1811,6 +2019,9 @@
             const total = state.files.filter(f => f.processedBlob).length;
             if(total === 0) { els.downloadBatchBtn.disabled = false; return; }
 
+            if (typeof NProgress !== 'undefined') {
+                NProgress.start();
+            }
             toast.info('Batch Download', `Downloading ${total} files...`);
 
             state.files.forEach((file, index) => {
@@ -1818,9 +2029,25 @@
                     setTimeout(() => {
                         saveAs(file.processedBlob, 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
                         downloadedCount++;
+                        if (typeof NProgress !== 'undefined') {
+                            NProgress.set(downloadedCount / total);
+                        }
+                        
                         if (downloadedCount === total) {
                             els.downloadBatchBtn.disabled = false;
+                            if (typeof NProgress !== 'undefined') {
+                                NProgress.done();
+                            }
                             toast.success('Download Complete', `${total} files downloaded`);
+                            
+                            // Celebration confetti
+                            if (typeof confetti !== 'undefined') {
+                                confetti({
+                                    particleCount: 150,
+                                    spread: 100,
+                                    origin: { y: 0.6 }
+                                });
+                            }
                         }
                     }, index * 250); 
                 }
