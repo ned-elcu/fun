@@ -327,6 +327,7 @@
         .control-value {
             color: var(--accent);
             font-weight: 600;
+            font-family: 'Space Grotesk', monospace;
             font-size: 0.95rem;
         }
 
@@ -561,6 +562,7 @@
             color: var(--text-primary);
             font-weight: 600;
             font-size: 1.1rem;
+            font-family: 'Space Grotesk', monospace;
         }
 
         .batch-actions {
@@ -1064,10 +1066,10 @@
                 </div>
             </div>
             <h1>
-                Bloxico
+                ChromaKey Pro
                 <span class="version-badge">v4.4</span>
             </h1>
-            <p class="subtitle">Icon Generator</p>
+            <p class="subtitle">Enterprise Background Removal Tool</p>
         </div>
 
         <!-- Main Grid -->
@@ -1173,18 +1175,18 @@
                             </div>
                             <div>
                                 <div class="stat-label">Images</div>
-                                <div class="stat-value" id="statusText">0 image(s)</div>
+                                <div class="stat-value" id="statusText">0</div>
                             </div>
                         </div>
                     </div>
                     <div class="batch-actions">
                         <button id="downloadBatchBtn" class="btn btn-secondary" disabled>
                             <i data-lucide="download"></i>
-                            Download All (Files)
+                            Download All
                         </button>
                         <button id="downloadZipBtn" class="btn btn-primary" disabled>
                             <i data-lucide="file-archive"></i>
-                            Download All (ZIP)
+                            Download ZIP
                         </button>
                     </div>
                 </div>
@@ -1484,6 +1486,15 @@
                 NProgress.start();
             }
 
+            // Confetti celebration for first upload
+            if (state.files.length === 0 && typeof confetti !== 'undefined') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
             toast.success('Files Added', `${files.length} image${files.length > 1 ? 's' : ''} loaded`);
 
             files.forEach((file, index) => {
@@ -1529,7 +1540,22 @@
         }
 
         function updateStatus() {
-            els.statusText.innerText = `${state.files.length} image(s)`;
+            const countEl = document.getElementById('statusText');
+            const currentCount = parseInt(countEl.innerText) || 0;
+            const newCount = state.files.length;
+            
+            // Animated counter
+            if (typeof countUp !== 'undefined' && countUp.CountUp) {
+                const counter = new countUp.CountUp(countEl, newCount, {
+                    startVal: currentCount,
+                    duration: 0.8,
+                    useEasing: true
+                });
+                counter.start();
+            } else {
+                countEl.innerText = newCount;
+            }
+
             const isDisabled = state.files.length === 0;
             els.downloadZipBtn.disabled = isDisabled;
             els.downloadBatchBtn.disabled = isDisabled;
