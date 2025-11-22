@@ -3,961 +3,1829 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChromaKey v4.4 (Eyedropper)</title>
+    <title>ChromaKey Pro - Enterprise Background Removal</title>
+    
+    <!-- CDN Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://unpkg.com/@floating-ui/dom@1.5.3/dist/floating-ui.dom.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13131a;
+            --bg-tertiary: #1a1a24;
+            --surface: #1e1e2e;
+            --surface-hover: #252535;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b2;
+            --text-tertiary: #6b6b7f;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-light: rgba(99, 102, 241, 0.1);
+            --success: #10b981;
+            --success-light: rgba(16, 185, 129, 0.1);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+            --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.6);
+            --glass-bg: rgba(30, 30, 46, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(245, 87, 108, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 20%, rgba(79, 70, 229, 0.05) 0%, transparent 50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a0a0b2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .version-badge {
+            display: inline-block;
+            margin-left: 12px;
+            padding: 4px 12px;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        .toast-enter { animation: slideInRight 0.3s ease-out; }
-        .toast-exit { animation: slideOutRight 0.3s ease-in; }
-        .fade-in { animation: fadeIn 0.2s ease-out; }
-        
-        .checkerboard {
-            background-image: 
-                linear-gradient(45deg, #2a2a2a 25%, transparent 25%), 
-                linear-gradient(-45deg, #2a2a2a 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #2a2a2a 75%), 
-                linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+
+        /* Controls Panel */
+        .controls-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-xl);
+            position: sticky;
+            top: 20px;
+            height: fit-content;
         }
-        
-        @media (max-width: 768px) {
-            .mobile-drawer {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease-in-out;
-            }
-            .mobile-drawer.open {
-                transform: translateX(0);
-            }
+
+        .panel-section {
+            margin-bottom: 32px;
         }
-        
+
+        .panel-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 24px 0;
+        }
+
+        /* Dropzone */
+        .dropzone {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--bg-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dropzone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gradient-1);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dropzone:hover {
+            border-color: var(--accent);
+            background: var(--surface);
+            transform: translateY(-2px);
+        }
+
+        .dropzone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            transform: scale(1.02);
+        }
+
+        .dropzone.dragover::before {
+            opacity: 0.1;
+        }
+
+        .dropzone-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .dropzone-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+
+        .dropzone-text {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .dropzone-text strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Control Groups */
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .control-value {
+            color: var(--accent);
+            font-weight: 600;
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.95rem;
+        }
+
+        /* Slider */
         input[type="range"] {
             -webkit-appearance: none;
-            appearance: none;
-            background: transparent;
-        }
-        
-        input[type="range"]::-webkit-slider-track {
-            background: #374151;
+            width: 100%;
             height: 6px;
-            border-radius: 3px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
         }
-        
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #ff006e;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
             border-radius: 50%;
             cursor: pointer;
-            margin-top: -6px;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+            transition: all 0.2s ease;
         }
-        
-        input[type="range"]::-moz-range-track {
-            background: #374151;
-            height: 6px;
-            border-radius: 3px;
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
         }
-        
+
         input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            background: #ff006e;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
             border-radius: 50%;
             cursor: pointer;
             border: none;
-        }
-        
-        .processing .processing-overlay {
-            display: flex !important;
-        }
-        
-        .popover-menu {
-            position: absolute;
-            bottom: 100%;
-            left: 0;
-            background: #1f2937;
-            border: 1px solid #374151;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            min-width: 150px;
-            overflow: hidden;
-            margin-bottom: 0.5rem;
-        }
-        
-        .popover-menu.active { 
-            display: flex; 
-        }
-        
-        .popover-item {
-            padding: 0.75rem 1rem;
-            font-size: 0.875rem;
-            cursor: pointer;
-            color: #e5e7eb;
-            border-bottom: 1px solid #374151;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            transition: all 0.15s;
-        }
-        
-        .popover-item:last-child { 
-            border-bottom: none; 
-        }
-        
-        .popover-item:hover { 
-            background: #ff006e;
-            color: white;
-        }
-        
-        .color-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.3);
-            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+            transition: all 0.2s ease;
         }
 
-        .eyedropper-icon {
-            width: 14px;
-            height: 14px;
-            background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
-            background-size: contain;
-            flex-shrink: 0;
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
         }
-        
-        .img-preview.picking-mode {
-            cursor: crosshair;
-            box-shadow: inset 0 0 0 3px #ff006e;
+
+        /* Select */
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        select:hover {
+            border-color: var(--border-strong);
+            background: var(--surface);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        /* Color Picker */
+        .color-picker-wrapper {
+            position: relative;
+            height: 48px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .color-picker-wrapper:hover {
+            border-color: var(--border-strong);
+            background: var(--surface);
+        }
+
+        input[type="color"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .color-preview {
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+            border: 2px solid var(--border);
+            transition: transform 0.2s ease;
+        }
+
+        .color-picker-wrapper:hover .color-preview {
+            transform: scale(1.05);
+        }
+
+        /* Checkbox Group */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .checkbox-group:hover {
+            border-color: var(--border-strong);
+            background: var(--surface);
+        }
+
+        .checkbox-group label {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper {
             position: relative;
         }
-        
-        .img-preview.picking-mode::after {
-            content: "Click color to remove";
+
+        input[type="checkbox"] {
+            appearance: none;
+            width: 44px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        input[type="checkbox"]::before {
+            content: '';
             position: absolute;
-            bottom: 0.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.9);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        input[type="checkbox"]:checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        input[type="checkbox"]:checked::before {
+            left: 22px;
+            background: white;
+        }
+
+        /* Results Area */
+        .results-area {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 20px 24px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+        }
+
+        .stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+        }
+
+        .stat-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+            font-family: 'Space Grotesk', monospace;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--surface-hover);
+            border-color: var(--border-strong);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Image Grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding-bottom: 100px;
+        }
+
+        .image-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            animation: scaleIn 0.4s ease-out both;
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--border-strong);
+        }
+
+        .img-preview {
+            height: 200px;
+            background: 
+                linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%), 
+                linear-gradient(-45deg, rgba(255,255,255,0.02) 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.02) 75%), 
+                linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.02) 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            background-color: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .img-preview.picking-mode {
+            cursor: crosshair;
+            box-shadow: inset 0 0 0 2px var(--accent);
+        }
+
+        .img-preview.picking-mode::after {
+            content: "🎯 Click to select color";
+            position: absolute;
+            bottom: 12px;
+            background: rgba(0, 0, 0, 0.9);
             color: white;
             font-size: 0.75rem;
-            padding: 0.375rem 0.75rem;
-            border-radius: 0.375rem;
+            padding: 6px 12px;
+            border-radius: 8px;
             pointer-events: none;
-            white-space: nowrap;
-            font-weight: 500;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .img-preview img {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+            border-radius: 8px;
             pointer-events: none;
-            border: 1px solid #555;
+        }
+
+        .waiting-state {
+            color: var(--text-tertiary);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Card Actions */
+        .card-actions {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border);
+        }
+
+        .card-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 70%;
+        }
+
+        .chroma-tag {
+            position: relative;
+            padding: 4px 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .chroma-tag:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .filename {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        /* Popover Menu */
+        .popover-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            box-shadow: var(--shadow-xl);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            min-width: 180px;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+
+        .popover-menu.active {
+            display: flex;
+            animation: popoverIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes popoverIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .popover-item {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.15s ease;
+            font-weight: 500;
+        }
+
+        .popover-item:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        .eyedropper-icon {
+            width: 16px;
+            height: 16px;
+            background: url('data:image/svg+xml;utf8,<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38L13.62 7.11C13.36 6.85 13.1 6.57 12.8 6.34L14.07 5.07L12.03 3.03C11.77 2.77 11.36 2.77 11.1 3.03L3 11.13C2.73 11.39 2.73 11.81 3 12.07L5.03 14.11L3.92 15.22C3.38 15.77 3.38 16.65 3.92 17.2L6.8 20.08C7.35 20.63 8.23 20.63 8.78 20.08L9.89 18.97L11.93 21C12.19 21.27 12.61 21.27 12.87 21L20.97 12.9L17.66 11.2ZM8.07 19.37L5.2 16.5L6.31 15.39L9.18 18.26L8.07 19.37ZM12.16 18.8L7.9 14.54L13.84 8.6L18.1 12.86L12.16 18.8Z"/></svg>') no-repeat center center;
+            background-size: contain;
+            flex-shrink: 0;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            font-size: 1.1rem;
+        }
+
+        .icon-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Processing Overlay */
+        .processing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            border-radius: 16px;
+        }
+
+        .processing .processing-overlay {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(99, 102, 241, 0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(20px);
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideOut {
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .toast.success .toast-icon {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .toast.error .toast-icon {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .toast.info .toast-icon {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+            color: var(--text-primary);
+        }
+
+        .toast-message {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .toast-close {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .toast-close:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-panel {
+                position: static;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .app-container {
+                padding: 20px 16px;
+            }
+
+            .image-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 16px;
+            }
+
+            .results-header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .batch-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-950 text-gray-100 font-sans antialiased">
+<body>
+    <!-- Background Effects -->
+    <div id="particles-js"></div>
+    <div class="bg-gradient"></div>
 
     <!-- Toast Container -->
-    <div id="toastContainer" class="fixed z-50 flex flex-col gap-2 pointer-events-none" 
-         style="bottom: 1rem; right: 1rem; max-width: 400px;">
-    </div>
+    <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Mobile Menu Toggle -->
-    <button id="mobileMenuToggle" class="md:hidden fixed top-4 left-4 z-50 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg shadow-lg transition-colors">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-    </button>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">✨</div>
+            </div>
+            <h1>
+                ChromaKey Pro
+                <span class="version-badge">v4.4</span>
+            </h1>
+            <p class="subtitle">Enterprise Background Removal Tool</p>
+        </div>
 
-    <!-- Header -->
-    <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-white">Chroma Tool</h1>
-                        <p class="text-xs text-gray-400">v4.4 (Eyedropper)</p>
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Controls Panel -->
+            <div class="controls-panel">
+                <div class="panel-section">
+                    <div class="section-title">📁 Input</div>
+                    <div class="dropzone" id="dropzone">
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon">📤</div>
+                            <p class="dropzone-text">
+                                <strong>Drop images here</strong><br>
+                                or click to browse
+                            </p>
+                        </div>
+                        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
                     </div>
                 </div>
-                <div id="statusText" class="hidden md:block text-sm text-gray-400">
-                    0 images loaded
+
+                <div class="section-divider"></div>
+
+                <div class="panel-section">
+                    <div class="section-title">⚙️ Export Settings</div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Export Size</label>
+                        <select id="exportSize">
+                            <option value="512">512 × 512</option>
+                            <option value="256">256 × 256</option>
+                            <option value="128">128 × 128</option>
+                            <option value="64">64 × 64</option>
+                            <option value="original">Original (Disable Norm)</option>
+                        </select>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label for="normalizeObject">Normalize / Center Object</label>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="normalizeObject" checked>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <div class="panel-section">
+                    <div class="section-title">🎨 Chroma Settings</div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">
+                            Tolerance
+                            <span class="control-value" id="tolVal">50</span>
+                        </label>
+                        <input type="range" id="tolerance" min="1" max="150" value="50">
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <div class="panel-section">
+                    <div class="section-title">✏️ Stroke</div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">
+                            Width
+                            <span class="control-value" id="strokeVal">10</span>
+                        </label>
+                        <input type="range" id="strokeWidth" min="0" max="50" value="10">
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Color</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="strokeColor" value="#000000">
+                            <div class="color-preview" id="colorPreview" style="background: #000000"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex flex-col lg:flex-row gap-6">
-            
-            <!-- Controls Panel -->
-            <aside id="controlsPanel" class="lg:w-80 mobile-drawer md:relative md:transform-none fixed inset-y-0 left-0 z-40 bg-gray-900 md:bg-transparent">
-                <div class="h-full overflow-y-auto p-4 md:p-0">
-                    <div class="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 lg:sticky lg:top-24">
-                        <div class="p-6 space-y-6">
-                            
-                            <!-- Upload Section -->
+            <!-- Results Area -->
+            <div class="results-area">
+                <div class="results-header">
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
                             <div>
-                                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Upload</h3>
-                                <div id="dropzone" class="border-2 border-dashed border-gray-700 hover:border-pink-500 rounded-lg p-8 text-center cursor-pointer transition-all group bg-gray-800/50 hover:bg-gray-800">
-                                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-600 group-hover:text-pink-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                    </svg>
-                                    <p class="text-sm text-gray-400 group-hover:text-gray-300">Drag & Drop Images<br>or Click to Browse</p>
-                                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
-                                </div>
+                                <div class="stat-label">Images</div>
+                                <div class="stat-value" id="statusText">0</div>
                             </div>
-
-                            <!-- Export Settings -->
-                            <div>
-                                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Export Size</h3>
-                                <select id="exportSize" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all">
-                                    <option value="512">512 x 512</option>
-                                    <option value="256">256 x 256</option>
-                                    <option value="128">128 x 128</option>
-                                    <option value="64">64 x 64</option>
-                                    <option value="original">Original (Disable Norm)</option>
-                                </select>
-                            </div>
-                            
-                            <div class="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
-                                <label for="normalizeObject" class="text-sm text-gray-300 cursor-pointer flex-1">Normalize / Center Object</label>
-                                <input type="checkbox" id="normalizeObject" checked class="w-5 h-5 text-pink-500 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-pink-500 cursor-pointer">
-                            </div>
-
-                            <hr class="border-gray-800">
-
-                            <!-- Tolerance -->
-                            <div>
-                                <label class="block text-sm text-gray-300 mb-2">
-                                    Tolerance 
-                                    <span id="tolVal" class="float-right text-pink-500 font-semibold">50</span>
-                                </label>
-                                <input type="range" id="tolerance" min="1" max="150" value="50" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
-                            </div>
-
-                            <hr class="border-gray-800">
-
-                            <!-- Stroke Settings -->
-                            <div>
-                                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Stroke</h3>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm text-gray-300 mb-2">
-                                            Width (px)
-                                            <span id="strokeVal" class="float-right text-pink-500 font-semibold">10</span>
-                                        </label>
-                                        <input type="range" id="strokeWidth" min="0" max="50" value="10" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm text-gray-300 mb-2">Stroke Color</label>
-                                        <input type="color" id="strokeColor" value="#000000" class="w-full h-12 bg-gray-800 border border-gray-700 rounded-lg cursor-pointer">
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
-                </div>
-            </aside>
-
-            <!-- Main Content Area -->
-            <main class="flex-1 min-w-0">
-                
-                <!-- Batch Actions Bar -->
-                <div class="bg-gray-900 rounded-xl shadow-lg border border-gray-800 p-4 mb-6 sticky top-24 z-30">
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div class="flex items-center gap-2">
-                            <span id="statusTextMobile" class="text-sm text-gray-400">0 images loaded</span>
-                        </div>
-                        <div class="flex gap-2 w-full sm:w-auto">
-                            <button id="downloadBatchBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm uppercase tracking-wide">
-                                Download All (Files)
-                            </button>
-                            <button id="downloadZipBtn" disabled class="flex-1 sm:flex-none bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 text-sm uppercase tracking-wide">
-                                Download All (ZIP)
-                            </button>
-                        </div>
+                    <div class="batch-actions">
+                        <button id="downloadBatchBtn" class="btn btn-secondary" disabled>
+                            <span>📥</span> Download All
+                        </button>
+                        <button id="downloadZipBtn" class="btn btn-primary" disabled>
+                            <span>🗜️</span> Download ZIP
+                        </button>
                     </div>
                 </div>
-
-                <!-- Results Grid -->
-                <div id="resultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
-                    <!-- Image cards will be inserted here -->
-                </div>
-
-            </main>
+                <div class="image-grid" id="resultsGrid"></div>
+            </div>
         </div>
     </div>
 
-<script>
-    // ============ TOAST SYSTEM (NEW UI FEATURE) ============
-    const Toast = {
-        container: null,
-        
-        init() {
-            this.container = document.getElementById('toastContainer');
-            if (window.innerWidth < 768) {
-                this.container.style.left = '50%';
-                this.container.style.right = 'auto';
-                this.container.style.transform = 'translateX(-50%)';
-                this.container.style.bottom = '1rem';
+    <script>
+        // Toast Notification System
+        class ToastManager {
+            constructor() {
+                this.container = document.getElementById('toastContainer');
+                this.toasts = [];
             }
-        },
-        
-        show(message, type = 'info', duration = 3000) {
-            const toast = document.createElement('div');
-            toast.className = 'toast-enter pointer-events-auto';
-            
-            const colors = {
-                success: 'bg-green-600',
-                error: 'bg-red-600',
-                warning: 'bg-yellow-600',
-                info: 'bg-blue-600',
-            };
-            
-            const icons = {
-                success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>',
-                error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>',
-                warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>',
-                info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
-            };
-            
-            toast.innerHTML = `
-                <div class="${colors[type]} text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 min-w-[280px] max-w-[400px]" role="${type === 'error' ? 'alert' : 'status'}">
-                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        ${icons[type]}
-                    </svg>
-                    <span class="flex-1 text-sm font-medium">${message}</span>
-                    <button class="toast-close hover:bg-white/20 rounded p-1 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-            `;
-            
-            this.container.appendChild(toast);
-            
-            const closeBtn = toast.querySelector('.toast-close');
-            
-            const remove = () => {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 300);
-            };
-            
-            closeBtn.addEventListener('click', remove);
-            
-            if (duration > 0) {
-                setTimeout(remove, duration);
+
+            show(title, message, type = 'info', duration = 4000) {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const icons = {
+                    success: '✓',
+                    error: '✕',
+                    info: 'ℹ'
+                };
+
+                toast.innerHTML = `
+                    <div class="toast-icon">${icons[type]}</div>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        ${message ? `<div class="toast-message">${message}</div>` : ''}
+                    </div>
+                    <button class="toast-close">×</button>
+                `;
+
+                this.container.appendChild(toast);
+                this.toasts.push(toast);
+
+                // Animate in
+                gsap.from(toast, {
+                    x: 100,
+                    opacity: 0,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+
+                // Close button
+                toast.querySelector('.toast-close').addEventListener('click', () => {
+                    this.remove(toast);
+                });
+
+                // Auto dismiss
+                if (duration > 0) {
+                    setTimeout(() => this.remove(toast), duration);
+                }
+
+                return toast;
+            }
+
+            remove(toast) {
+                toast.classList.add('removing');
+                gsap.to(toast, {
+                    x: 100,
+                    opacity: 0,
+                    duration: 0.3,
+                    ease: 'power2.in',
+                    onComplete: () => {
+                        toast.remove();
+                        this.toasts = this.toasts.filter(t => t !== toast);
+                    }
+                });
+            }
+
+            success(title, message, duration) {
+                return this.show(title, message, 'success', duration);
+            }
+
+            error(title, message, duration) {
+                return this.show(title, message, 'error', duration);
+            }
+
+            info(title, message, duration) {
+                return this.show(title, message, 'info', duration);
             }
         }
-    };
 
-    Toast.init();
+        const toast = new ToastManager();
 
-    // ============ MOBILE MENU (NEW UI FEATURE) ============
-    document.getElementById('mobileMenuToggle').addEventListener('click', () => {
-        document.getElementById('controlsPanel').classList.toggle('open');
-    });
-
-    document.addEventListener('click', (e) => {
-        const panel = document.getElementById('controlsPanel');
-        const toggle = document.getElementById('mobileMenuToggle');
-        if (window.innerWidth < 768 && !panel.contains(e.target) && !toggle.contains(e.target)) {
-            panel.classList.remove('open');
-        }
-    });
-
-    // ============ ORIGINAL APP CODE (UNCHANGED) ============
-    const state = {
-        files: [], 
-        settings: { 
-            tolerance: 50, 
-            strokeWidth: 10, 
-            strokeColor: '#000000',
-            exportSize: '512',
-            normalizeObject: true 
-        },
-        activeMenuFileId: null
-    };
-
-    const els = {
-        dropzone: document.getElementById('dropzone'),
-        fileInput: document.getElementById('fileInput'),
-        exportSize: document.getElementById('exportSize'),
-        normalizeObject: document.getElementById('normalizeObject'),
-        tolerance: document.getElementById('tolerance'),
-        strokeWidth: document.getElementById('strokeWidth'),
-        strokeColor: document.getElementById('strokeColor'),
-        tolVal: document.getElementById('tolVal'),
-        strokeVal: document.getElementById('strokeVal'),
-        resultsGrid: document.getElementById('resultsGrid'),
-        downloadZipBtn: document.getElementById('downloadZipBtn'),
-        downloadBatchBtn: document.getElementById('downloadBatchBtn'),
-        statusText: document.getElementById('statusText'),
-        statusTextMobile: document.getElementById('statusTextMobile')
-    };
-
-    let processTimeout;
-
-    window.addEventListener('DOMContentLoaded', () => {
-        loadSettings();
-        bindEvents();
-    });
-
-    window.addEventListener('click', (e) => {
-        if (!e.target.closest('.tag') && !e.target.closest('.popover-menu')) {
-            closeAllMenus();
-        }
-    });
-
-    function closeAllMenus() {
-        document.querySelectorAll('.popover-menu').forEach(el => el.classList.remove('active'));
-        state.activeMenuFileId = null;
-    }
-
-    function loadSettings() {
-        const saved = localStorage.getItem('chromaToolSettings_v4.4');
-        if (saved) {
-            state.settings = { ...state.settings, ...JSON.parse(saved) };
-            els.tolerance.value = state.settings.tolerance;
-            els.strokeWidth.value = state.settings.strokeWidth;
-            els.strokeColor.value = state.settings.strokeColor;
-            els.exportSize.value = state.settings.exportSize;
-            els.normalizeObject.checked = state.settings.normalizeObject;
-            els.tolVal.innerText = state.settings.tolerance;
-            els.strokeVal.innerText = state.settings.strokeWidth;
-        }
-    }
-
-    function saveSettings() {
-        localStorage.setItem('chromaToolSettings_v4.4', JSON.stringify(state.settings));
-    }
-
-    function bindEvents() {
-        els.dropzone.addEventListener('click', () => els.fileInput.click());
-        els.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropzone.classList.add('dragover'); });
-        els.dropzone.addEventListener('dragleave', () => els.dropzone.classList.remove('dragover'));
-        els.dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            els.dropzone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
+        // Initialize Particles
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#6366f1' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.3, random: true },
+                size: { value: 3, random: true },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#6366f1',
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: 'none',
+                    random: true,
+                    straight: false,
+                    out_mode: 'out'
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'grab' },
+                    resize: true
+                },
+                modes: {
+                    grab: { distance: 140, line_linked: { opacity: 0.5 } }
+                }
+            }
         });
-        els.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-        const updateHandler = () => {
-            state.settings.tolerance = parseInt(els.tolerance.value);
-            state.settings.strokeWidth = parseInt(els.strokeWidth.value);
-            state.settings.strokeColor = els.strokeColor.value;
-            state.settings.exportSize = els.exportSize.value;
-            state.settings.normalizeObject = els.normalizeObject.checked;
-            
-            els.tolVal.innerText = state.settings.tolerance;
-            els.strokeVal.innerText = state.settings.strokeWidth;
-            
-            saveSettings();
-            triggerBatchProcess();
+        // Update color preview
+        document.getElementById('strokeColor').addEventListener('input', (e) => {
+            document.getElementById('colorPreview').style.background = e.target.value;
+        });
+
+        // ORIGINAL FUNCTIONALITY - PRESERVED 100% //
+        
+        // --- State ---
+        const state = {
+            files: [], 
+            settings: { 
+                tolerance: 50, 
+                strokeWidth: 10, 
+                strokeColor: '#000000',
+                exportSize: '512',
+                normalizeObject: true 
+            },
+            activeMenuFileId: null
         };
 
-        els.tolerance.addEventListener('input', updateHandler);
-        els.strokeWidth.addEventListener('input', updateHandler);
-        els.strokeColor.addEventListener('input', updateHandler);
-        els.exportSize.addEventListener('change', updateHandler);
-        els.normalizeObject.addEventListener('change', updateHandler); 
+        const els = {
+            dropzone: document.getElementById('dropzone'),
+            fileInput: document.getElementById('fileInput'),
+            exportSize: document.getElementById('exportSize'),
+            normalizeObject: document.getElementById('normalizeObject'),
+            tolerance: document.getElementById('tolerance'),
+            strokeWidth: document.getElementById('strokeWidth'),
+            strokeColor: document.getElementById('strokeColor'),
+            tolVal: document.getElementById('tolVal'),
+            strokeVal: document.getElementById('strokeVal'),
+            resultsGrid: document.getElementById('resultsGrid'),
+            downloadZipBtn: document.getElementById('downloadZipBtn'),
+            downloadBatchBtn: document.getElementById('downloadBatchBtn'),
+            statusText: document.getElementById('statusText')
+        };
 
-        els.downloadZipBtn.addEventListener('click', downloadAllZip);
-        els.downloadBatchBtn.addEventListener('click', downloadAllBatch);
-    }
+        let processTimeout;
 
-    function handleFiles(fileList) {
-        Array.from(fileList).forEach(file => {
-            if (!file.type.startsWith('image/')) return;
-            const id = Date.now() + Math.random().toString(36).substr(2, 9);
-            const card = createResultCard(id, file.name);
-            els.resultsGrid.appendChild(card);
+        // --- Init ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            bindEvents();
+        });
 
-            const fileData = { 
-                id, 
-                originalFile: file, 
-                processedBlob: null, 
-                element: card,
-                manualMode: null, 
-                customHex: '#ff0000'
+        window.addEventListener('click', (e) => {
+            if (!e.target.closest('.chroma-tag') && !e.target.closest('.popover-menu')) {
+                closeAllMenus();
+            }
+        });
+
+        function closeAllMenus() {
+            document.querySelectorAll('.popover-menu').forEach(el => el.classList.remove('active'));
+            state.activeMenuFileId = null;
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('chromaToolSettings_v4.4');
+            if (saved) {
+                state.settings = { ...state.settings, ...JSON.parse(saved) };
+                els.tolerance.value = state.settings.tolerance;
+                els.strokeWidth.value = state.settings.strokeWidth;
+                els.strokeColor.value = state.settings.strokeColor;
+                els.exportSize.value = state.settings.exportSize;
+                els.normalizeObject.checked = state.settings.normalizeObject;
+                els.tolVal.innerText = state.settings.tolerance;
+                els.strokeVal.innerText = state.settings.strokeWidth;
+                document.getElementById('colorPreview').style.background = state.settings.strokeColor;
+            }
+        }
+
+        function saveSettings() {
+            localStorage.setItem('chromaToolSettings_v4.4', JSON.stringify(state.settings));
+        }
+
+        function bindEvents() {
+            els.dropzone.addEventListener('click', () => els.fileInput.click());
+            els.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropzone.classList.add('dragover'); });
+            els.dropzone.addEventListener('dragleave', () => els.dropzone.classList.remove('dragover'));
+            els.dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                els.dropzone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+            els.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+            const updateHandler = () => {
+                state.settings.tolerance = parseInt(els.tolerance.value);
+                state.settings.strokeWidth = parseInt(els.strokeWidth.value);
+                state.settings.strokeColor = els.strokeColor.value;
+                state.settings.exportSize = els.exportSize.value;
+                state.settings.normalizeObject = els.normalizeObject.checked;
+                
+                els.tolVal.innerText = state.settings.tolerance;
+                els.strokeVal.innerText = state.settings.strokeWidth;
+                
+                saveSettings();
+                triggerBatchProcess();
             };
 
-            const tag = card.querySelector('.tag');
-            tag.addEventListener('click', (e) => toggleMenu(e, fileData));
+            els.tolerance.addEventListener('input', updateHandler);
+            els.strokeWidth.addEventListener('input', updateHandler);
+            els.strokeColor.addEventListener('input', updateHandler);
+            els.exportSize.addEventListener('change', updateHandler);
+            els.normalizeObject.addEventListener('change', updateHandler); 
 
-            state.files.push(fileData);
-            processImage(fileData);
-        });
-        updateStatus();
-    }
-
-    function updateStatus() {
-        const text = `${state.files.length} image(s)`;
-        els.statusText.innerText = text;
-        els.statusTextMobile.innerText = text;
-        const isDisabled = state.files.length === 0;
-        els.downloadZipBtn.disabled = isDisabled;
-        els.downloadBatchBtn.disabled = isDisabled;
-    }
-
-    function triggerBatchProcess() {
-        clearTimeout(processTimeout);
-        processTimeout = setTimeout(() => {
-            state.files.forEach(processImage);
-        }, 300);
-    }
-
-    function toggleMenu(e, fileData) {
-        e.stopPropagation();
-        const existingMenu = fileData.element.querySelector('.popover-menu');
-        
-        if (existingMenu.classList.contains('active')) {
-            existingMenu.classList.remove('active');
-            state.activeMenuFileId = null;
-            return;
+            els.downloadZipBtn.addEventListener('click', downloadAllZip);
+            els.downloadBatchBtn.addEventListener('click', downloadAllBatch);
         }
-        closeAllMenus();
 
-        existingMenu.innerHTML = `
-            <div class="popover-item" data-mode="green"><div class="color-dot" style="background:#0f0"></div> Green</div>
-            <div class="popover-item" data-mode="blue"><div class="color-dot" style="background:#00f"></div> Blue</div>
-            <div class="popover-item" data-mode="white"><div class="color-dot" style="background:#fff"></div> White</div>
-            <div class="popover-item" data-mode="black"><div class="color-dot" style="background:#000"></div> Black</div>
-            <div class="popover-item" data-mode="picker"><div class="eyedropper-icon"></div> Eyedropper</div>
-        `;
+        function handleFiles(fileList) {
+            const files = Array.from(fileList).filter(file => file.type.startsWith('image/'));
+            
+            if (files.length === 0) {
+                toast.error('Invalid Files', 'Please select image files only');
+                return;
+            }
 
-        existingMenu.querySelectorAll('.popover-item').forEach(item => {
-            item.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                const mode = item.dataset.mode;
-                
-                if (mode === 'picker') {
-                    activateEyedropper(fileData);
-                    closeAllMenus();
-                } else {
-                    fileData.manualMode = mode;
-                    closeAllMenus();
-                    processImage(fileData);
-                }
+            toast.success('Files Added', `${files.length} image${files.length > 1 ? 's' : ''} loaded`);
+
+            files.forEach((file, index) => {
+                const id = Date.now() + Math.random().toString(36).substr(2, 9);
+                const card = createResultCard(id, file.name);
+                els.resultsGrid.appendChild(card);
+
+                // Animate card in with delay
+                gsap.from(card, {
+                    opacity: 0,
+                    y: 20,
+                    scale: 0.9,
+                    duration: 0.4,
+                    delay: index * 0.05,
+                    ease: 'power2.out'
+                });
+
+                const fileData = { 
+                    id, 
+                    originalFile: file, 
+                    processedBlob: null, 
+                    element: card,
+                    manualMode: null, 
+                    customHex: '#ff0000'
+                };
+
+                const tag = card.querySelector('.chroma-tag');
+                tag.addEventListener('click', (e) => toggleMenu(e, fileData));
+
+                state.files.push(fileData);
+                processImage(fileData);
             });
-        });
+            updateStatus();
+        }
 
-        existingMenu.classList.add('active');
-        state.activeMenuFileId = fileData.id;
-    }
+        function updateStatus() {
+            els.statusText.innerText = state.files.length;
+            const isDisabled = state.files.length === 0;
+            els.downloadZipBtn.disabled = isDisabled;
+            els.downloadBatchBtn.disabled = isDisabled;
+        }
 
-    function activateEyedropper(fileData) {
-        const previewDiv = fileData.element.querySelector('.img-preview');
-        const imgEl = previewDiv.querySelector('img');
+        function triggerBatchProcess() {
+            clearTimeout(processTimeout);
+            processTimeout = setTimeout(() => {
+                state.files.forEach(processImage);
+            }, 300);
+        }
 
-        imgEl.src = URL.createObjectURL(fileData.originalFile);
-        
-        previewDiv.classList.add('picking-mode');
-
-        const clickHandler = (e) => {
-            e.preventDefault();
+        function toggleMenu(e, fileData) {
             e.stopPropagation();
+            const existingMenu = fileData.element.querySelector('.popover-menu');
             
-            previewDiv.classList.remove('picking-mode');
-            
-            const rect = imgEl.getBoundingClientRect();
-            
+            if (existingMenu.classList.contains('active')) {
+                existingMenu.classList.remove('active');
+                state.activeMenuFileId = null;
+                return;
+            }
+            closeAllMenus();
+
+            existingMenu.innerHTML = `
+                <div class="popover-item" data-mode="green"><div class="color-dot" style="background:#0f0"></div> Green</div>
+                <div class="popover-item" data-mode="blue"><div class="color-dot" style="background:#00f"></div> Blue</div>
+                <div class="popover-item" data-mode="white"><div class="color-dot" style="background:#fff"></div> White</div>
+                <div class="popover-item" data-mode="black"><div class="color-dot" style="background:#000"></div> Black</div>
+                <div class="popover-item" data-mode="picker"><div class="eyedropper-icon"></div> Eyedropper</div>
+            `;
+
+            existingMenu.querySelectorAll('.popover-item').forEach(item => {
+                item.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const mode = item.dataset.mode;
+                    
+                    if (mode === 'picker') {
+                        activateEyedropper(fileData);
+                        closeAllMenus();
+                    } else {
+                        fileData.manualMode = mode;
+                        closeAllMenus();
+                        processImage(fileData);
+                    }
+                });
+            });
+
+            existingMenu.classList.add('active');
+            state.activeMenuFileId = fileData.id;
+        }
+
+        // --- Eyedropper Logic ---
+        function activateEyedropper(fileData) {
+            const previewDiv = fileData.element.querySelector('.img-preview');
+            const imgEl = previewDiv.querySelector('img');
+
+            imgEl.src = URL.createObjectURL(fileData.originalFile);
+            previewDiv.classList.add('picking-mode');
+
+            const clickHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                previewDiv.classList.remove('picking-mode');
+                
+                const rect = imgEl.getBoundingClientRect();
+                
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    const containerRatio = rect.width / rect.height;
+                    const imgRatio = img.width / img.height;
+                    
+                    let renderWidth, renderHeight, renderLeft, renderTop;
+
+                    if (imgRatio > containerRatio) {
+                        renderWidth = rect.width;
+                        renderHeight = rect.width / imgRatio;
+                        renderLeft = 0;
+                        renderTop = (rect.height - renderHeight) / 2;
+                    } else {
+                        renderHeight = rect.height;
+                        renderWidth = rect.height * imgRatio;
+                        renderTop = 0;
+                        renderLeft = (rect.width - renderWidth) / 2;
+                    }
+
+                    const clientX = e.clientX - rect.left;
+                    const clientY = e.clientY - rect.top;
+
+                    const relativeX = clientX - renderLeft;
+                    const relativeY = clientY - renderTop;
+
+                    if (relativeX >= 0 && relativeX <= renderWidth && relativeY >= 0 && relativeY <= renderHeight) {
+                        const trueX = Math.floor((relativeX / renderWidth) * img.width);
+                        const trueY = Math.floor((relativeY / renderHeight) * img.height);
+                        
+                        const p = ctx.getImageData(trueX, trueY, 1, 1).data;
+                        const hex = "#" + ((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1);
+                        
+                        fileData.manualMode = 'custom';
+                        fileData.customHex = hex;
+                        
+                        toast.success('Color Selected', `Using ${hex} for chroma key`);
+                        processImage(fileData);
+                    } else {
+                        processImage(fileData);
+                    }
+                };
+                img.src = URL.createObjectURL(fileData.originalFile);
+            };
+
+            previewDiv.addEventListener('click', clickHandler, { once: true });
+        }
+
+        // --- Core Processing ---
+
+        function processImage(fileData) {
+            const card = fileData.element;
+            card.classList.add('processing');
+
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 canvas.width = img.width;
                 canvas.height = img.height;
                 const ctx = canvas.getContext('2d');
+
                 ctx.drawImage(img, 0, 0);
+                let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let data = imageData.data;
+                const width = canvas.width;
+                const height = canvas.height;
 
-                const containerRatio = rect.width / rect.height;
-                const imgRatio = img.width / img.height;
-                
-                let renderWidth, renderHeight, renderLeft, renderTop;
+                // 1. DETERMINE MODE
+                let mode = 'green';
+                let customRGB = null;
 
-                if (imgRatio > containerRatio) {
-                    renderWidth = rect.width;
-                    renderHeight = rect.width / imgRatio;
-                    renderLeft = 0;
-                    renderTop = (rect.height - renderHeight) / 2;
-                } else {
-                    renderHeight = rect.height;
-                    renderWidth = rect.height * imgRatio;
-                    renderTop = 0;
-                    renderLeft = (rect.width - renderWidth) / 2;
-                }
-
-                const clientX = e.clientX - rect.left;
-                const clientY = e.clientY - rect.top;
-
-                const relativeX = clientX - renderLeft;
-                const relativeY = clientY - renderTop;
-
-                if (relativeX >= 0 && relativeX <= renderWidth && relativeY >= 0 && relativeY <= renderHeight) {
-                    const trueX = Math.floor((relativeX / renderWidth) * img.width);
-                    const trueY = Math.floor((relativeY / renderHeight) * img.height);
-                    
-                    const p = ctx.getImageData(trueX, trueY, 1, 1).data;
-                    const hex = "#" + ((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1);
-                    
-                    fileData.manualMode = 'custom';
-                    fileData.customHex = hex;
-                    
-                    processImage(fileData);
-                } else {
-                    processImage(fileData);
-                }
-            };
-            img.src = URL.createObjectURL(fileData.originalFile);
-        };
-
-        previewDiv.addEventListener('click', clickHandler, { once: true });
-    }
-
-    function processImage(fileData) {
-        const card = fileData.element;
-        card.classList.add('processing');
-
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-
-            ctx.drawImage(img, 0, 0);
-            let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let data = imageData.data;
-            const width = canvas.width;
-            const height = canvas.height;
-
-            let mode = 'green';
-            let customRGB = null;
-
-            if (fileData.manualMode) {
-                mode = fileData.manualMode;
-                if (mode === 'custom' && fileData.customHex) {
-                    const r = parseInt(fileData.customHex.substr(1,2), 16);
-                    const g = parseInt(fileData.customHex.substr(3,2), 16);
-                    const b = parseInt(fileData.customHex.substr(5,2), 16);
-                    customRGB = { r, g, b };
-                }
-            } else {
-                let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
-                for (let i = 0; i < data.length; i+=32) { 
-                    if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
-                        const r = data[i], g = data[i+1], b = data[i+2];
-                        const bright = (r+g+b)/3;
-                        if (bright < 40) blackScore++; 
-                        else if (bright > 230) whiteScore++; 
-                        else if (g > r && g > b) gScore++; 
-                        else if (b > r && b > g) bScore++; 
+                if (fileData.manualMode) {
+                    mode = fileData.manualMode;
+                    if (mode === 'custom' && fileData.customHex) {
+                        const r = parseInt(fileData.customHex.substr(1,2), 16);
+                        const g = parseInt(fileData.customHex.substr(3,2), 16);
+                        const b = parseInt(fileData.customHex.substr(5,2), 16);
+                        customRGB = { r, g, b };
                     }
-                }
-                let maxScore = Math.max(gScore, bScore, blackScore, whiteScore);
-                if (maxScore === bScore) mode = 'blue';
-                else if (maxScore === blackScore) mode = 'black';
-                else if (maxScore === whiteScore) mode = 'white';
-            }
-
-            const tag = card.querySelector('.tag');
-            if (mode === 'custom' && customRGB) {
-                tag.innerText = 'Custom';
-                tag.style.background = fileData.customHex;
-                const yiq = ((customRGB.r*299)+(customRGB.g*587)+(customRGB.b*114))/1000;
-                tag.style.color = (yiq >= 128) ? 'black' : 'white';
-            } else {
-                tag.innerText = mode;
-                tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : (mode === 'white') ? '#eee' : '#222';
-                tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
-            }
-
-            const tol = state.settings.tolerance;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i], g = data[i+1], b = data[i+2];
-                let isBackground = false;
-
-                if (mode === 'green') { 
-                    if (g > r + tol && g > b + tol) isBackground = true; 
-                } 
-                else if (mode === 'blue') { 
-                    if (b > r + tol && b > g + tol) isBackground = true; 
-                }
-                else if (mode === 'black') { 
-                    if (r < tol && g < tol && b < tol) isBackground = true; 
-                }
-                else if (mode === 'white') { 
-                    if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; 
-                }
-                else if (mode === 'custom' && customRGB) {
-                    const dist = Math.sqrt(
-                        Math.pow(r - customRGB.r, 2) + 
-                        Math.pow(g - customRGB.g, 2) + 
-                        Math.pow(b - customRGB.b, 2)
-                    );
-                    if (dist < tol * 1.5) isBackground = true; 
-                }
-
-                if (isBackground) data[i+3] = 0; 
-            }
-
-            removeIslands(data, width, height, 100);
-
-            if (state.settings.strokeWidth > 0) {
-                applyStroke(data, width, height, state.settings.strokeWidth, state.settings.strokeColor);
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-
-            let finalCanvas = document.createElement('canvas');
-            let exportSize = parseInt(state.settings.exportSize);
-            
-            if (isNaN(exportSize)) exportSize = Math.max(width, height); 
-            
-            finalCanvas.width = exportSize;
-            finalCanvas.height = exportSize;
-            const fCtx = finalCanvas.getContext('2d');
-            fCtx.imageSmoothingEnabled = true;
-            fCtx.imageSmoothingQuality = 'high';
-
-            if (state.settings.normalizeObject) {
-                const bounds = getContentBounds(data, width, height);
-                
-                if (bounds.w > 0 && bounds.h > 0) {
-                    const padding = exportSize * 0.1; 
-                    const availableW = exportSize - (padding * 2);
-                    const availableH = exportSize - (padding * 2);
-                    const scale = Math.min(availableW / bounds.w, availableH / bounds.h);
-                    
-                    const renderW = bounds.w * scale;
-                    const renderH = bounds.h * scale;
-                    const renderX = (exportSize - renderW) / 2;
-                    const renderY = (exportSize - renderH) / 2;
-
-                    fCtx.drawImage(
-                        canvas, 
-                        bounds.x, bounds.y, bounds.w, bounds.h, 
-                        renderX, renderY, renderW, renderH      
-                    );
                 } else {
-                    fCtx.clearRect(0,0, exportSize, exportSize);
-                }
-            } else {
-                if (state.settings.exportSize === 'original') {
-                    finalCanvas = canvas; 
-                } else {
-                    fCtx.drawImage(canvas, 0, 0, exportSize, exportSize);
-                }
-            }
-
-            finalCanvas.toBlob((blob) => {
-                fileData.processedBlob = blob;
-                const url = URL.createObjectURL(blob);
-                const prevContainer = card.querySelector('.img-preview');
-                prevContainer.innerHTML = '';
-                const resImg = new Image();
-                resImg.src = url;
-                prevContainer.appendChild(resImg);
-
-                card.querySelector('.dl-btn').onclick = () => {
-                    saveAs(blob, 'processed_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
-                };
-                card.classList.remove('processing');
-            }, 'image/png');
-        };
-        img.src = URL.createObjectURL(fileData.originalFile);
-    }
-
-    function getContentBounds(data, w, h) {
-        let minX = w, minY = h, maxX = 0, maxY = 0;
-        let found = false;
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                const alpha = data[(y * w + x) * 4 + 3];
-                if (alpha > 0) {
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                    found = true;
-                }
-            }
-        }
-        if (!found) return { x:0, y:0, w:0, h:0 };
-        return { x: minX, y: minY, w: (maxX - minX + 1), h: (maxY - minY + 1) };
-    }
-
-    function removeIslands(data, width, height, minSize) {
-        const visited = new Uint8Array(width * height);
-        const stack = [];
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const idx = y * width + x;
-                if (data[idx * 4 + 3] > 0 && visited[idx] === 0) {
-                    stack.push(idx);
-                    visited[idx] = 1;
-                    const component = [idx];
-                    while(stack.length > 0) {
-                        const curr = stack.pop();
-                        const neighbors = [1, -1, width, -width];
-                        for (let offset of neighbors) {
-                             const nIdx = curr + offset;
-                             if (nIdx >= 0 && nIdx < width*height && visited[nIdx]===0) {
-                                 if (data[nIdx*4+3] > 0) {
-                                     visited[nIdx] = 1;
-                                     stack.push(nIdx);
-                                     component.push(nIdx);
-                                 }
-                             }
+                    let gScore = 0, bScore = 0, blackScore = 0, whiteScore = 0;
+                    for (let i = 0; i < data.length; i+=32) { 
+                        if (i < width*4 || i > (height-1)*width*4 || i % (width*4) === 0) {
+                            const r = data[i], g = data[i+1], b = data[i+2];
+                            const bright = (r+g+b)/3;
+                            if (bright < 40) blackScore++; 
+                            else if (bright > 230) whiteScore++; 
+                            else if (g > r && g > b) gScore++; 
+                            else if (b > r && b > g) bScore++; 
                         }
                     }
-                    if (component.length < minSize) {
-                        for (const i of component) data[i * 4 + 3] = 0;
+                    let maxScore = Math.max(gScore, bScore, blackScore, whiteScore);
+                    if (maxScore === bScore) mode = 'blue';
+                    else if (maxScore === blackScore) mode = 'black';
+                    else if (maxScore === whiteScore) mode = 'white';
+                }
+
+                // Update UI Tag
+                const tag = card.querySelector('.chroma-tag');
+                if (mode === 'custom' && customRGB) {
+                    tag.innerText = 'Custom';
+                    tag.style.background = fileData.customHex;
+                    const yiq = ((customRGB.r*299)+(customRGB.g*587)+(customRGB.b*114))/1000;
+                    tag.style.color = (yiq >= 128) ? 'black' : 'white';
+                } else {
+                    tag.innerText = mode;
+                    tag.style.background = (mode === 'green') ? '#90EE90' : (mode === 'blue') ? '#ADD8E6' : (mode === 'white') ? '#eee' : '#222';
+                    tag.style.color = (mode === 'white' || mode === 'green' || mode === 'blue') ? '#000' : '#fff';
+                }
+
+                // 2. REMOVE BACKGROUND
+                const tol = state.settings.tolerance;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i], g = data[i+1], b = data[i+2];
+                    let isBackground = false;
+
+                    if (mode === 'green') { 
+                        if (g > r + tol && g > b + tol) isBackground = true; 
+                    } 
+                    else if (mode === 'blue') { 
+                        if (b > r + tol && b > g + tol) isBackground = true; 
+                    }
+                    else if (mode === 'black') { 
+                        if (r < tol && g < tol && b < tol) isBackground = true; 
+                    }
+                    else if (mode === 'white') { 
+                        if (r > (255-tol) && g > (255-tol) && b > (255-tol)) isBackground = true; 
+                    }
+                    else if (mode === 'custom' && customRGB) {
+                        const dist = Math.sqrt(
+                            Math.pow(r - customRGB.r, 2) + 
+                            Math.pow(g - customRGB.g, 2) + 
+                            Math.pow(b - customRGB.b, 2)
+                        );
+                        if (dist < tol * 1.5) isBackground = true; 
+                    }
+
+                    if (isBackground) data[i+3] = 0; 
+                }
+
+                // 3. CLEAN UP
+                removeIslands(data, width, height, 100);
+
+                // 4. STROKE
+                if (state.settings.strokeWidth > 0) {
+                    applyStroke(data, width, height, state.settings.strokeWidth, state.settings.strokeColor);
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+
+                // 5. RESIZE / NORMALIZE
+                let finalCanvas = document.createElement('canvas');
+                let exportSize = parseInt(state.settings.exportSize);
+                
+                if (isNaN(exportSize)) exportSize = Math.max(width, height); 
+                
+                finalCanvas.width = exportSize;
+                finalCanvas.height = exportSize;
+                const fCtx = finalCanvas.getContext('2d');
+                fCtx.imageSmoothingEnabled = true;
+                fCtx.imageSmoothingQuality = 'high';
+
+                if (state.settings.normalizeObject) {
+                    const bounds = getContentBounds(data, width, height);
+                    
+                    if (bounds.w > 0 && bounds.h > 0) {
+                        const padding = exportSize * 0.1; 
+                        const availableW = exportSize - (padding * 2);
+                        const availableH = exportSize - (padding * 2);
+                        const scale = Math.min(availableW / bounds.w, availableH / bounds.h);
+                        
+                        const renderW = bounds.w * scale;
+                        const renderH = bounds.h * scale;
+                        const renderX = (exportSize - renderW) / 2;
+                        const renderY = (exportSize - renderH) / 2;
+
+                        fCtx.drawImage(
+                            canvas, 
+                            bounds.x, bounds.y, bounds.w, bounds.h, 
+                            renderX, renderY, renderW, renderH      
+                        );
+                    } else {
+                        fCtx.clearRect(0,0, exportSize, exportSize);
+                    }
+                } else {
+                    if (state.settings.exportSize === 'original') {
+                        finalCanvas = canvas; 
+                    } else {
+                        fCtx.drawImage(canvas, 0, 0, exportSize, exportSize);
+                    }
+                }
+
+                // 6. FINALIZE
+                finalCanvas.toBlob((blob) => {
+                    fileData.processedBlob = blob;
+                    const url = URL.createObjectURL(blob);
+                    const prevContainer = card.querySelector('.img-preview');
+                    prevContainer.innerHTML = '';
+                    const resImg = new Image();
+                    resImg.src = url;
+                    prevContainer.appendChild(resImg);
+
+                    card.querySelector('.dl-btn').onclick = () => {
+                        saveAs(blob, 'processed_' + fileData.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
+                        toast.success('Downloaded', fileData.originalFile.name);
+                    };
+                    card.classList.remove('processing');
+                }, 'image/png');
+            };
+            img.src = URL.createObjectURL(fileData.originalFile);
+        }
+
+        // --- Helpers ---
+
+        function getContentBounds(data, w, h) {
+            let minX = w, minY = h, maxX = 0, maxY = 0;
+            let found = false;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const alpha = data[(y * w + x) * 4 + 3];
+                    if (alpha > 0) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                        found = true;
+                    }
+                }
+            }
+            if (!found) return { x:0, y:0, w:0, h:0 };
+            return { x: minX, y: minY, w: (maxX - minX + 1), h: (maxY - minY + 1) };
+        }
+
+        function removeIslands(data, width, height, minSize) {
+            const visited = new Uint8Array(width * height);
+            const stack = [];
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = y * width + x;
+                    if (data[idx * 4 + 3] > 0 && visited[idx] === 0) {
+                        stack.push(idx);
+                        visited[idx] = 1;
+                        const component = [idx];
+                        while(stack.length > 0) {
+                            const curr = stack.pop();
+                            const neighbors = [1, -1, width, -width];
+                            for (let offset of neighbors) {
+                                 const nIdx = curr + offset;
+                                 if (nIdx >= 0 && nIdx < width*height && visited[nIdx]===0) {
+                                     if (data[nIdx*4+3] > 0) {
+                                         visited[nIdx] = 1;
+                                         stack.push(nIdx);
+                                         component.push(nIdx);
+                                     }
+                                 }
+                            }
+                        }
+                        if (component.length < minSize) {
+                            for (const i of component) data[i * 4 + 3] = 0;
+                        }
                     }
                 }
             }
         }
-    }
 
-    function applyStroke(data, width, height, strokeWidth, hexColor) {
-        const INF = 1e9;
-        const grid = new Float32Array(width * height);
-        const sr = parseInt(hexColor.substr(1,2), 16);
-        const sg = parseInt(hexColor.substr(3,2), 16);
-        const sb = parseInt(hexColor.substr(5,2), 16);
+        function applyStroke(data, width, height, strokeWidth, hexColor) {
+            const INF = 1e9;
+            const grid = new Float32Array(width * height);
+            const sr = parseInt(hexColor.substr(1,2), 16);
+            const sg = parseInt(hexColor.substr(3,2), 16);
+            const sb = parseInt(hexColor.substr(5,2), 16);
 
-        for (let i = 0; i < width * height; i++) grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
-        for (let i = 0; i < width*height; i++) {
-            if (grid[i] > 0) {
-                const x = i % width;
-                const y = Math.floor(i / width);
-                let minD = grid[i];
-                if (x > 0) minD = Math.min(minD, grid[i-1] + 1);
-                if (y > 0) minD = Math.min(minD, grid[i-width] + 1);
-                if (x > 0 && y > 0) minD = Math.min(minD, grid[i-width-1] + 1.414);
-                if (x < width-1 && y > 0) minD = Math.min(minD, grid[i-width+1] + 1.414);
-                grid[i] = minD;
+            for (let i = 0; i < width * height; i++) grid[i] = (data[i * 4 + 3] > 0) ? 0 : INF;
+            for (let i = 0; i < width*height; i++) {
+                if (grid[i] > 0) {
+                    const x = i % width;
+                    const y = Math.floor(i / width);
+                    let minD = grid[i];
+                    if (x > 0) minD = Math.min(minD, grid[i-1] + 1);
+                    if (y > 0) minD = Math.min(minD, grid[i-width] + 1);
+                    if (x > 0 && y > 0) minD = Math.min(minD, grid[i-width-1] + 1.414);
+                    if (x < width-1 && y > 0) minD = Math.min(minD, grid[i-width+1] + 1.414);
+                    grid[i] = minD;
+                }
+            }
+            for (let i = width*height - 1; i >= 0; i--) {
+                if (grid[i] > 0) {
+                    const x = i % width;
+                    const y = Math.floor(i / width);
+                    let minD = grid[i];
+                    if (x < width - 1) minD = Math.min(minD, grid[i+1] + 1);
+                    if (y < height - 1) minD = Math.min(minD, grid[i+width] + 1);
+                    if (x < width - 1 && y < height - 1) minD = Math.min(minD, grid[i+width+1] + 1.414);
+                    if (x > 0 && y < height - 1) minD = Math.min(minD, grid[i+width-1] + 1.414);
+                    grid[i] = minD;
+                }
+            }
+            for (let i = 0; i < width * height; i++) {
+                const dist = grid[i];
+                if (dist > 0 && dist <= strokeWidth + 0.5) {
+                    const pIdx = i * 4;
+                    let alpha = 255;
+                    if (dist > strokeWidth - 0.5) alpha = 255 * (1 - (dist - (strokeWidth - 0.5)));
+                    data[pIdx] = sr; data[pIdx+1] = sg; data[pIdx+2] = sb; data[pIdx+3] = alpha;
+                }
             }
         }
-        for (let i = width*height - 1; i >= 0; i--) {
-            if (grid[i] > 0) {
-                const x = i % width;
-                const y = Math.floor(i / width);
-                let minD = grid[i];
-                if (x < width - 1) minD = Math.min(minD, grid[i+1] + 1);
-                if (y < height - 1) minD = Math.min(minD, grid[i+width] + 1);
-                if (x < width - 1 && y < height - 1) minD = Math.min(minD, grid[i+width+1] + 1.414);
-                if (x > 0 && y < height - 1) minD = Math.min(minD, grid[i+width-1] + 1.414);
-                grid[i] = minD;
-            }
-        }
-        for (let i = 0; i < width * height; i++) {
-            const dist = grid[i];
-            if (dist > 0 && dist <= strokeWidth + 0.5) {
-                const pIdx = i * 4;
-                let alpha = 255;
-                if (dist > strokeWidth - 0.5) alpha = 255 * (1 - (dist - (strokeWidth - 0.5)));
-                data[pIdx] = sr; data[pIdx+1] = sg; data[pIdx+2] = sb; data[pIdx+3] = alpha;
-            }
-        }
-    }
 
-    function createResultCard(id, filename) {
-        const div = document.createElement('div');
-        div.className = 'image-card bg-gray-900 rounded-xl shadow-lg border border-gray-800 overflow-hidden transition-all hover:shadow-2xl hover:shadow-pink-500/10 hover:-translate-y-1 fade-in';
-        div.innerHTML = `
-            <div class="img-preview checkerboard h-48 flex items-center justify-center p-3 relative">
-                <div class="text-gray-600 text-sm">Waiting...</div>
-            </div>
-            <div class="processing-overlay absolute inset-0 bg-black/80 backdrop-blur-sm flex-col hidden items-center justify-center">
-                <svg class="animate-spin h-8 w-8 text-pink-500 mb-2" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span class="text-white text-sm font-medium">Processing...</span>
-            </div>
-            <div class="card-actions p-3 bg-gray-800/50 flex items-center justify-between gap-2 relative">
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                    <span class="tag text-[10px] px-2 py-1 rounded bg-gray-700 text-gray-300 font-semibold uppercase tracking-wide cursor-pointer hover:bg-gray-600 transition-colors" title="Click to change chroma key">...</span>
-                    <div class="popover-menu"></div>
-                    <div class="text-xs text-gray-400 truncate flex-1">${filename}</div>
+        function createResultCard(id, filename) {
+            const div = document.createElement('div');
+            div.className = 'image-card';
+            div.innerHTML = `
+                <div class="img-preview">
+                    <div class="waiting-state">Processing...</div>
                 </div>
-                <button class="dl-btn p-2 hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-white" title="Download">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                </button>
-            </div>
-        `;
-        return div;
-    }
+                <div class="processing-overlay">
+                    <div class="spinner"></div>
+                </div>
+                <div class="card-actions">
+                    <div class="card-info">
+                        <span class="chroma-tag" title="Click to change chroma key">...</span>
+                        <div class="popover-menu"></div>
+                        <div class="filename">${filename}</div>
+                    </div>
+                    <button class="icon-btn dl-btn" title="Download">⬇</button>
+                </div>
+            `;
+            return div;
+        }
 
-    function downloadAllZip() {
-        const zip = new JSZip();
-        const imgFolder = zip.folder("processed_images");
-        let count = 0;
-        state.files.forEach(file => {
-            if (file.processedBlob) {
-                imgFolder.file('processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png", file.processedBlob);
-                count++;
+        function downloadAllZip() {
+            const zip = new JSZip();
+            const imgFolder = zip.folder("processed_images");
+            let count = 0;
+            state.files.forEach(file => {
+                if (file.processedBlob) {
+                    imgFolder.file('processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png", file.processedBlob);
+                    count++;
+                }
+            });
+            if (count > 0) {
+                els.downloadZipBtn.disabled = true;
+                toast.info('Creating ZIP', 'Packaging your files...');
+                imgFolder.generateAsync({type:"blob"}).then(content => {
+                    saveAs(content, "chroma_key_results.zip");
+                    toast.success('ZIP Ready', `${count} files packaged successfully`);
+                    els.downloadZipBtn.disabled = false; 
+                });
             }
-        });
-        if (count > 0) {
-            els.downloadZipBtn.disabled = true; 
-            imgFolder.generateAsync({type:"blob"}).then(content => {
-                saveAs(content, "chroma_key_results.zip");
-                els.downloadZipBtn.disabled = false; 
+        }
+
+        function downloadAllBatch() {
+            let downloadedCount = 0;
+            els.downloadBatchBtn.disabled = true; 
+            const total = state.files.filter(f => f.processedBlob).length;
+            if(total === 0) { els.downloadBatchBtn.disabled = false; return; }
+
+            toast.info('Batch Download', `Downloading ${total} files...`);
+
+            state.files.forEach((file, index) => {
+                if (file.processedBlob) {
+                    setTimeout(() => {
+                        saveAs(file.processedBlob, 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
+                        downloadedCount++;
+                        if (downloadedCount === total) {
+                            els.downloadBatchBtn.disabled = false;
+                            toast.success('Download Complete', `${total} files downloaded`);
+                        }
+                    }, index * 250); 
+                }
             });
         }
-    }
-
-    function downloadAllBatch() {
-        let downloadedCount = 0;
-        els.downloadBatchBtn.disabled = true; 
-        const total = state.files.filter(f => f.processedBlob).length;
-        if(total === 0) { els.downloadBatchBtn.disabled = false; return; }
-
-        state.files.forEach((file, index) => {
-            if (file.processedBlob) {
-                setTimeout(() => {
-                    saveAs(file.processedBlob, 'processed_' + file.originalFile.name.replace(/\.[^/.]+$/, "") + ".png");
-                    downloadedCount++;
-                    if (downloadedCount === total) els.downloadBatchBtn.disabled = false;
-                }, index * 250); 
-            }
-        });
-    }
-</script>
-
+    </script>
 </body>
 </html>
